@@ -3,7 +3,7 @@
 ## Setup
 **Required packages**: corner, emcee, multiprocessing, pandas, pymp, pynbody, PySimpleGUI, scipy, skimage
 
-###Config.py
+### Config.py
 Set up all the simulation information and initialize the directory for v-band images.
 
 
@@ -124,25 +124,25 @@ Generates plots in "Figures/3DShapes" comparing the 3D shapes of galaxies and th
 ### StellarDMTracing.py
 Generates plots in "Figures/EllipticityComparison" comparing isophote measurements to 2D shape tensor projections.
 
-###GalaCollector.py
+### GalaCollector.py
 Can be automatically run on all sims via CollectAll.py<br>
 
 Preliminary code modelling stellar and dark matter density profiles with spherical harmonic expansion. Generates SCFData files, as well as density profile images in "Figures/Gala". Can be automatically run on all sims via CollectAll.py
 
 
-##MCMC Deprojection
+## MCMC Deprojection
 Scripts in the "MCMC" directory are responsible for calculating MCMC deprojection of isophote data into 3D axis ratio measurements. They should be run in the following sequence:<br>
 
 GridInterpolation &rarr; MCMC &rarr; PynbodyMCMCComparison
 
-###GridInterpolation.py
+### GridInterpolation.py
 
 **Description**: The MCMC deprojection process requires a smooth sampling of isophotes over 3D space, while our imaging is discretized in 30 degree increments. This script uses the scipy's RegularGridInterpolator to interpolate isolate values in between the actual imaged isophotes.
 
 **Outputs**<br>
 Generates "InterpolataionFunction" files for each simulation. Also generates images in "Figures/Interpolaation" to show how the data is being filled.
 
-###MCMC.py
+### MCMC.py
 Can be automatically run on all sims via FitAll.py<br>
 
 **Description**: Runs the MCMC Deprojection process outlined in Kado-Fong et al. 2021. 
@@ -158,15 +158,15 @@ Can be automatically run on all sims via FitAll.py<br>
 **Outputs**<br>
 Generates MCMC files for each sim giving the inferred 3D axis ratios. Also generates images for each halo in "Figures/MCMC" detailing the MCMC process and how the results compare to the shape tensor values.
 
-###PynbodyMCMCComparison.py
+### PynbodyMCMCComparison.py
 Generates plots in "Figures/MCMC" comparing MCMC deprojection values to shape tensor calculations.
 
 
-##Ellipticity-Surface Brightness Correlation
+## Ellipticity-Surface Brightness Correlation
 
 Scripts in the "XuComparison" directory perform the Ellipticity-Surface Brightness Correlation analysis from Xu et al. 2020.
 
-###DynamicalMass.py
+### DynamicalMass.py
 Can be automatically run on all sims via CollectAll.py<br>
 
 **Description**: Collects dynamical masses for all galaxies in a simulation
@@ -179,5 +179,5 @@ Can be automatically run on all sims via CollectAll.py<br>
 **Outputs**<br>
 Generates DynamicalMasses files for each simulation
 
-###XuCorrelation.py
+### XuCorrelation.py
 Generates various plots testing the Ellipticity-Surface Brightness Correlation and saves them to "Figures/CorrelationTesting"

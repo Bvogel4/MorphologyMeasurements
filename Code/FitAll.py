@@ -1,5 +1,4 @@
-import argparse,os,pickle
-config = pickle.load(open('Config.pickle','rb'))
+import argparse,os,pickle,sys
 
 parser = argparse.ArgumentParser(description='Fit Isophotes to all generated images.')
 parser.add_argument('-n','--numproc',type=int,required=True,help='Number of processors to use')
@@ -27,5 +26,5 @@ for feedback in ['BW','SB']:
     sims = pickle.load(open(f'SimulationInfo.{feedback}.pickle','rb'))
     os.chdir(subdir)
     for s in sims:
-        os.system(f"{config['python_path']} {script} -f {feedback} -s {s} -n {args.numproc} {over}")
+        os.system(f"{sys.executable} {script} -f {feedback} -s {s} -n {args.numproc} {over}")
         #os.system(f"/usr/local/anaconda/bin/python {script} -f {feedback} -s {s} -n {args.numproc}")

@@ -1,5 +1,4 @@
-import argparse,os,pickle
-config = pickle.load(open('Config.pickle','rb'))
+import argparse,os,pickle,sys
 
 parser = argparse.ArgumentParser(description='Collect data from all simulations')
 parser.add_argument('-n','--numproc',type=int,required=True,help='Number of processors to use')
@@ -44,10 +43,10 @@ for feedback in ['BW','SB']:
     os.chdir(subdir)
     for s in sims:
         if type=='I':
-            os.system(f"{config['python_path']} ImageCollection.py -f {feedback} -s {s} {gen_im} -n {args.numproc} {verbose} {overwrite}")
+            os.system(f"{sys.executable} ImageCollection.py -f {feedback} -s {s} {gen_im} -n {args.numproc} {verbose} {overwrite}")
         elif type=='S':
-            os.system(f"{config['python_path']} 3DShapeCollection.{stype}.py -f {feedback} -s {s} -n {args.numproc} {verbose}")
+            os.system(f"{sys.executable} 3DShapeCollection.{stype}.py -f {feedback} -s {s} -n {args.numproc} {verbose}")
         elif type=='G':
-            os.system(f"{config['python_path']} GalaCollector.py -f {feedback} -s {s} -n {args.numproc} {gen_im} {verbose}")
+            os.system(f"{sys.executable} GalaCollector.py -f {feedback} -s {s} -n {args.numproc} {gen_im} {verbose}")
         elif type=='M':
-            os.system(f"{config['python_path']} DynamicalMass.py -f {feedback} -s {s} -n {args.numproc}")
+            os.system(f"{sys.executable} DynamicalMass.py -f {feedback} -s {s} -n {args.numproc}")

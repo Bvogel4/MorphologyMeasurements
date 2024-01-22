@@ -1,12 +1,25 @@
 # Morphology Measurement Methods
 
 ## Setup
-**Required packages**: corner, emcee, multiprocessing, pandas, pymp, pynbody, PySimpleGUI, scipy, skimage, gala
+This project requires a specific setup of Python environment and packages for use on clusters for which sudo is inaccesable. Follow these steps to set up your environment:
 
-Note: `galacollector.py` requires the GNU Scientific Library (GSL). Ensure that GSL is installed on your system, or install it within a Conda environment. 
+```bash
+# Install Miniconda
+# First, install Miniconda on your system. You can download it from the Miniconda website.
 
-### Config.py
-Set up all the simulation information and initialize the directory for v-band images.
+# Create a Conda Environment
+conda create --name myenv python=3.9
+
+# Activate Conda Environment
+conda activate myenv
+
+# Install Required Packages
+pip install -r requirements.txt
+
+# Install GSL (GNU Scientific Library)
+# `galacollector.py` requires the GNU Scientific Library (GSL). Install GSL using Conda:
+conda install -c conda-forge gsl
+```
 
 
 

@@ -1,0 +1,7 @@
+numpy
+pandas
+corner
+emcee
+pymp-pypi
+scipy
+scikit-image

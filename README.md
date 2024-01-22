@@ -1,10 +1,13 @@
 # Morphology Measurement Methods
 
 ## Setup
-**Required packages**: corner, emcee, multiprocessing, pandas, pymp, pynbody, PySimpleGUI, scipy, skimage
+**Required packages**: corner, emcee, multiprocessing, pandas, pymp, pynbody, PySimpleGUI, scipy, skimage, gala
+
+Note: `galacollector.py` requires the GNU Scientific Library (GSL). Ensure that GSL is installed on your system, or install it within a Conda environment. 
 
 ### Config.py
 Set up all the simulation information and initialize the directory for v-band images.
+
 
 
 

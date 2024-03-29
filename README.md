@@ -13,12 +13,12 @@ conda create --name myenv python=3.9
 # Activate Conda Environment
 conda activate myenv
 
-# Install Required Packages
-pip install -r requirements.txt
-
 # Install GSL (GNU Scientific Library)
 # `galacollector.py` requires the GNU Scientific Library (GSL). Install GSL using Conda:
 conda install -c conda-forge gsl
+
+# Install Required Packages
+pip install -r requirements.txt
 ```
 
 

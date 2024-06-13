@@ -19,8 +19,8 @@ def pix2kpc(pix,width):
     return(pix/1000.*width)
 
 parser = argparse.ArgumentParser(description='Collect images of all resolved halos from a given simulation. Images will be generated across all orientations.')
-parser.add_argument('-f','--feedback',choices=['BW','SB'],default='BW',help='Feedback Model')
-parser.add_argument('-s','--simulation',choices=['cptmarvel','elektra','storm','rogue','h148','h229','h242','h329'],required=True,help='Simulation to analyze')
+parser.add_argument('-f','--feedback',choices=['BW','SB','RDZ'],default='BW',help='Feedback Model')
+parser.add_argument('-s','--simulation',required=True,help='Simulation to analyze')
 parser.add_argument('-n','--numproc',type=int,required=True,help='Number of processors to use')
 parser.add_argument('-v','--verbose',action='store_true')
 args = parser.parse_args()

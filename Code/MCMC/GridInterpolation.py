@@ -9,6 +9,7 @@ from ShapeFunctions.Functions import RegularGridInterpolator as RGI
 from ShapeFunctions.Functions import Ellipsoid,Project,kpc2pix,pix2kpc,Project_OLD
 from matplotlib.patches import Rectangle as Rec
 from matplotlib.collections import PatchCollection
+import argparse
 
 def PadData(data):
     '''
@@ -45,6 +46,12 @@ def FillNaN(data):
             else:
                 good.append([x*30,y*30])
                 fit.append(data[x][y])
+                
+    if not good:  # Check if 'good' is empty
+        print("No valid data points for interpolation. Skipping")
+        return data, bad, None
+    
+    #print(good,fit,bad,'\n')
     fill = griddata(good,fit,bad,method='cubic')
     for i in np.arange(len(bad)):
         x,y = int(bad[i][0]/30),int(bad[i][1]/30)
@@ -74,11 +81,15 @@ Xedge_int = np.arange(-da/2,360+da*1.5,da)
 
 Plot = False
 
-SimInfo = pickle.load(open('../SimulationInfo.BW.pickle','rb'))
+parser = argparse.ArgumentParser(description='')
+parser.add_argument('-f','--feedback',choices=['BW','SB','RDZ'],default='RDZ',help='Feedback Model')
+args = parser.parse_args()
+
+SimInfo = pickle.load(open(f'../SimulationInfo.{args.feedback}.pickle','rb'))
 for sim in SimInfo:
-    Shapes = pickle.load(open(f'../../Data/{sim}.BW.ShapeData.pickle','rb'))
-    Profiles = pickle.load(open(f'../../Data/{sim}.BW.Profiles.pickle','rb'))
-    Shapes3d = pickle.load(open(f'../../Data/{sim}.BW.3DShapes.pickle','rb'))
+    Shapes = pickle.load(open(f'../../Data/{sim}.{args.feedback}.ShapeData.pickle','rb'))
+    Profiles = pickle.load(open(f'../../Data/{sim}.{args.feedback}.Profiles.pickle','rb'))
+    Shapes3d = pickle.load(open(f'../../Data/{sim}.{args.feedback}.3DShapes.pickle','rb'))
     InterpFuncs = {}
     for hid in Shapes:
         InterpFuncs[hid] = np.NaN
@@ -103,8 +114,14 @@ for sim in SimInfo:
         c.ax.tick_params(labelsize=15)
         c.ax.plot([0,1],[np.amin(plot),np.amin(plot)],c='w') 
         c.ax.plot([0,1],[np.amax(plot),np.amax(plot)],c='w') 
+        
+        
+        plot_fill1,bad1,fill1 = FillNaN(plot)
+        folder_path = f'../../Figures/Interpolation/{sim}.{args.feedback}'
+        os.makedirs(folder_path, exist_ok=True)
+        if fill1 is not None:
+            f.savefig(f'{folder_path}/{hid}.Data.png', bbox_inches='tight', pad_inches=0.1)
 
-        f.savefig(f'../../Figures/Interpolation/{sim}.BW/{hid}.Data.png',bbox_inches='tight',pad_inches=.1)
         plt.close(f)
 
         #Filled and Padded Data Plot
@@ -117,7 +134,7 @@ for sim in SimInfo:
         ax.set_xlabel(r'$\phi$-rotation [$^o$]',fontsize=25)
         ax.set_ylabel(r'$\theta$-rotation [$^o$]',fontsize=25)
 
-        plot_fill1,bad1,fill1 = FillNaN(plot)
+
         plot_pad = PadData(plot_fill1)
         plot_fill2,bad2,fill2 = FillNaN(plot_pad)
 
@@ -134,8 +151,8 @@ for sim in SimInfo:
         if len(bad2)>0:
             for i in np.arange(len(bad2)):
                 ax.add_patch(Rec((bad2[i][1]-5,bad2[i][0]-5),10,10,color='w'))
-        
-        f.savefig(f'../../Figures/Interpolation/{sim}.BW/{hid}.Filled.png',bbox_inches='tight',pad_inches=.1)
+        if fill1 is not None:
+            f.savefig(f'../../Figures/Interpolation/{sim}.{args.feedback}/{hid}.Filled.png',bbox_inches='tight',pad_inches=.1)
         plt.close(f)
 
         if not True in np.isnan(plot_fill2):
@@ -187,7 +204,7 @@ for sim in SimInfo:
                 c.ax.plot([-1,1],[np.amin(plot_dif),np.amin(plot_dif)],c='gold') 
                 c.ax.plot([-1,1],[np.amax(plot_dif),np.amax(plot_dif)],c='gold') 
 
-                f.savefig(f'../../Figures/Interpolation/{sim}.BW/{hid}.Interpolated.Dif.png',bbox_inches='tight',pad_inches=.1)
+                f.savefig(f'../../Figures/Interpolation/{sim}.{args.feedback}/{hid}.Interpolated.Dif.png',bbox_inches='tight',pad_inches=.1)
                 plt.close(f)
 
 
@@ -207,8 +224,8 @@ for sim in SimInfo:
                 c.ax.plot([-1,1],[np.amin(plot_sig),np.amin(plot_sig)],c='w') 
                 c.ax.plot([-1,1],[np.amax(plot_sig),np.amax(plot_sig)],c='w') 
 
-                f.savefig(f'../../Figures/Interpolation/{sim}.BW/{hid}.Interpolated.Sig.png',bbox_inches='tight',pad_inches=.1)
+                f.savefig(f'../../Figures/Interpolation/{sim}.{args.feedback}/{hid}.Interpolated.Sig.png',bbox_inches='tight',pad_inches=.1)
                 plt.close(f)
             except:
                 continue
-    pickle.dump(InterpFuncs,open(f'../../Data/{sim}.BW.InterpolationFunctions.pickle','wb'))
+    pickle.dump(InterpFuncs,open(f'../../Data/{sim}.{args.feedback}.InterpolationFunctions.pickle','wb'))

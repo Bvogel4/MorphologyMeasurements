@@ -1,0 +1,172 @@
+Sims = {
+'r431':{
+    'path':'/data/REPOSITORY/romulus_zooms/r431.romulus25.3072g1HsbBH/r431.romulus25.3072g1HsbBH.004096/r431.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r442':{
+    'path':'/data/REPOSITORY/romulus_zooms/r442.romulus25.3072g1HsbBH/r442.romulus25.3072g1HsbBH.004096/r442.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r468':{
+    'path':'/data/REPOSITORY/romulus_zooms/r468.romulus25.3072g1HsbBH/r468.romulus25.3072g1HsbBH.004096/r468.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r488':{
+    'path':'/data/REPOSITORY/romulus_zooms/r488.romulus25.3072g1HsbBH/r488.romulus25.3072g1HsbBH.004096/r488.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r492':{
+    'path':'/data/REPOSITORY/romulus_zooms/r492.romulus25.3072g1HsbBH/r492.romulus25.3072g1HsbBH.004096/r492.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r502':{
+    'path':'/data/REPOSITORY/romulus_zooms/r502.romulus25.3072g1HsbBH/r502.romulus25.3072g1HsbBH.004096/r502.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r515':{
+    'path':'/data/REPOSITORY/romulus_zooms/r515.romulus25.3072g1HsbBH/r515.romulus25.3072g1HsbBH.004096/r515.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r523':{
+    'path':'/data/REPOSITORY/romulus_zooms/r523.romulus25.3072g1HsbBH/r523.romulus25.3072g1HsbBH.004096/r523.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r544':{
+    'path':'/data/REPOSITORY/romulus_zooms/r544.romulus25.3072g1HsbBH/r544.romulus25.3072g1HsbBH.004096/r544.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r552':{
+    'path':'/data/REPOSITORY/romulus_zooms/r552.romulus25.3072g1HsbBH/r552.romulus25.3072g1HsbBH.004096/r552.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r555':{
+    'path':'/data/REPOSITORY/romulus_zooms/r555.romulus25.3072g1HsbBH/r555.romulus25.3072g1HsbBH.004096/r555.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r556':{
+    'path':'/data/REPOSITORY/romulus_zooms/r556.romulus25.3072g1HsbBH/r556.romulus25.3072g1HsbBH.004096/r556.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r563':{
+    'path':'/data/REPOSITORY/romulus_zooms/r563.romulus25.3072g1HsbBH/r563.romulus25.3072g1HsbBH.004096/r563.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r568':{
+    'path':'/data/REPOSITORY/romulus_zooms/r568.romulus25.3072g1HsbBH/r568.romulus25.3072g1HsbBH.004096/r568.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r569':{
+    'path':'/data/REPOSITORY/romulus_zooms/r569.romulus25.3072g1HsbBH/r569.romulus25.3072g1HsbBH.004096/r569.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r571':{
+    'path':'/data/REPOSITORY/romulus_zooms/r571.romulus25.3072g1HsbBH/r571.romulus25.3072g1HsbBH.004096/r571.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r597':{
+    'path':'/data/REPOSITORY/romulus_zooms/r597.romulus25.3072g1HsbBH/r597.romulus25.3072g1HsbBH.004096/r597.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r613':{
+    'path':'/data/REPOSITORY/romulus_zooms/r613.romulus25.3072g1HsbBH/r613.romulus25.3072g1HsbBH.004096/r613.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r614':{
+    'path':'/data/REPOSITORY/romulus_zooms/r614.romulus25.3072g1HsbBH/r614.romulus25.3072g1HsbBH.004096/r614.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r615':{
+    'path':'/data/REPOSITORY/romulus_zooms/r615.romulus25.3072g1HsbBH/r615.romulus25.3072g1HsbBH.004096/r615.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r618':{
+    'path':'/data/REPOSITORY/romulus_zooms/r618.romulus25.3072g1HsbBH/r618.romulus25.3072g1HsbBH.004096/r618.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r634':{
+    'path':'/data/REPOSITORY/romulus_zooms/r634.romulus25.3072g1HsbBH/r634.romulus25.3072g1HsbBH.004096/r634.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r642':{
+    'path':'/data/REPOSITORY/romulus_zooms/r642.romulus25.3072g1HsbBH/r642.romulus25.3072g1HsbBH.004096/r642.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r656':{
+    'path':'/data/REPOSITORY/romulus_zooms/r656.romulus25.3072g1HsbBH/r656.romulus25.3072g1HsbBH.004096/r656.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r716':{
+    'path':'/data/REPOSITORY/romulus_zooms/r716.romulus25.3072g1HsbBH/r716.romulus25.3072g1HsbBH.004096/r716.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r718':{
+    'path':'/data/REPOSITORY/romulus_zooms/r718.romulus25.3072g1HsbBH/r718.romulus25.3072g1HsbBH.004096/r718.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r761':{
+    'path':'/data/REPOSITORY/romulus_zooms/r761.romulus25.3072g1HsbBH/r761.romulus25.3072g1HsbBH.004096/r761.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r850':{
+    'path':'/data/REPOSITORY/romulus_zooms/r850.romulus25.3072g1HsbBH/r850.romulus25.3072g1HsbBH.004096/r850.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r852':{
+    'path':'/data/REPOSITORY/romulus_zooms/r852.romulus25.3072g1HsbBH/r852.romulus25.3072g1HsbBH.004096/r852.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r886':{
+    'path':'/data/REPOSITORY/romulus_zooms/r886.romulus25.3072g1HsbBH/r886.romulus25.3072g1HsbBH.004096/r886.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r916':{
+    'path':'/data/REPOSITORY/romulus_zooms/r916.romulus25.3072g1HsbBH/r916.romulus25.3072g1HsbBH.004096/r916.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r918':{
+    'path':'/data/REPOSITORY/romulus_zooms/r918.romulus25.3072g1HsbBH/r918.romulus25.3072g1HsbBH.004096/r918.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r977':{
+    'path':'/data/REPOSITORY/romulus_zooms/r977.romulus25.3072g1HsbBH/r977.romulus25.3072g1HsbBH.004096/r977.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+'r1023':{
+    'path':'/data/REPOSITORY/romulus_zooms/r1023.romulus25.3072g1HsbBH/r1023.romulus25.3072g1HsbBH.004096/r1023.romulus25.3072g1HsbBH.004096',
+    'halos':[1],
+    'goodhalos':[1],
+},
+}

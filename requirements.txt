@@ -1,0 +1,9 @@
+numpy
+pandas
+corner
+emcee
+#multiprocessing #usually installed by default
+pymp-pypi
+scipy
+scikit-image
+pynbody

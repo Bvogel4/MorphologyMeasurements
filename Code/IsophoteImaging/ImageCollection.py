@@ -3,6 +3,19 @@ import numpy as np
 import matplotlib.pylab as plt
 from pynbody.plot.sph import image
 from scipy.optimize import curve_fit
+import os
+from pathlib import Path
+import traceback
+
+# Current script directory (IsophoteImaging)
+current_dir = Path(__file__).parent
+# Root directory (one level up from IsophoteImaging)
+root_dir = current_dir.parent.parent
+code_dir= root_dir / 'Code'
+# Absolute path for Figures/Images directory
+images_dir = root_dir / 'Figures' / 'Images'
+print(root_dir,images_dir)
+
 def myprint(string,clear=False):
     if clear:
         sys.stdout.write("\033[F")
@@ -13,26 +26,40 @@ def sersic(r, mueff, reff, n):
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser(description='Collect images of all resolved halos from a given simulation. Images will be generated across all orientations.')
-parser.add_argument('-f','--feedback',choices=['BW','SB'],default='BW',help='Feedback Model')
-parser.add_argument('-s','--simulation',choices=['cptmarvel','elektra','storm','rogue','h148','h229','h242','h329'],required=True,help='Simulation to analyze')
+parser.add_argument('-f','--feedback',choices=['BW','SB','RDZ'],default='BW',help='Feedback Model')
+parser.add_argument('-s','--simulation',required=True,help='Simulation to analyze')
 parser.add_argument('-i','--image',action='store_true',help='Generate images in addition to profile data')
 parser.add_argument('-n','--numproc',type=int,required=True,help='Number of processors to use')
 parser.add_argument('-o','--overwrite',action='store_true',help='Overwrite existing images')
 parser.add_argument('-v','--verbose',action='store_true',help='Print halo IDs being analyzed')
 args = parser.parse_args()
 
-SimInfo = pickle.load(open(f'../SimulationInfo.{args.feedback}.pickle','rb'))
+
+#SimInfo = pickle.load(open(root_dir/f'SimulationInfo.{args.feedback}.pickle','rb'))
+SimInfo = pickle.load(open(code_dir / f'SimulationInfo.{args.feedback}.pickle', 'rb'))
+
 simpath = SimInfo[args.simulation]['path']
 halos = SimInfo[args.simulation]['goodhalos']
 dx,dy = 30,30 #Angular resolution of rotations
 #Check if all halos in sim have been completed
-if f'{halos[-1]}.x{180-dx:03d}.y{360-dy}.png' in os.listdir(f'../../Figures/Images/{args.simulation}.{args.feedback}/{halos[-1]}/') and not args.overwrite:
+image_path = images_dir / f'{args.simulation}.{args.feedback}' / str(halos[-1])
+if f'{halos[-1]}.x{180-dx:03d}.y{360-dy}.png' in os.listdir(image_path) and not args.overwrite:
     print(f'{args.simulation}.{args.feedback} completed.')
     sys.exit(0)
 
 print(f'Loading {args.simulation}')
 tstart = time.time()
-sim = pynbody.load(simpath)
+if os.path.exists(simpath):
+    try:
+        # Attempt to load the simulation
+        sim = pynbody.load(simpath)
+        print("Simulation loaded successfully.")
+    except Exception as e:
+        # Handle exceptions raised by pynbody.load
+        print(f"Failed to load simulation: {e}")
+else:
+    print(f"Path does not exist: {simpath}")
+
 sim.physical_units()
 h = sim.halos()
 if args.image: ImageData = pymp.shared.dict()
@@ -60,8 +87,8 @@ with pymp.Parallel(args.numproc) as pl:
                 #Find V-band SB at Reff
                 current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}'] = {}
                 current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['Rhalf'] = Rhalf
+                prof = pynbody.analysis.profile.Profile(halo.s,type='lin',min=.25,max=5*Rhalf,ndim=2,nbins=int((5*Rhalf)/0.1))
                 try:
-                    prof = pynbody.analysis.profile.Profile(halo.s,type='lin',min=.25,max=5*Rhalf,ndim=2,nbins=int((5*Rhalf)/0.1))
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['sb,v'] = prof['sb,v']
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['v_lum_den'] = prof['v_lum_den']
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['rbins'] = prof['rbins']
@@ -70,6 +97,10 @@ with pymp.Parallel(args.numproc) as pl:
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['mags,v'] = prof['magnitudes,v']
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['binarea'] = binarea
                 except:
+                    if args.verbose:
+                        print(f'Error in fitting {hid} x{xrotation*dx:03d}y{yrotation*dy:03d}')
+                        #print traceback
+                        print(traceback.format_exc())
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['sb,v'] = np.NaN
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['v_lum_den'] = np.NaN
                     current_sb[f'x{xrotation*dx:03d}y{yrotation*dy:03d}']['rbins'] = np.NaN
@@ -102,7 +133,11 @@ with pymp.Parallel(args.numproc) as pl:
                     ax.set_axis_off()
                     f.add_axes(ax)
                     im = image(sim[ImageSpace].s,qty='v_lum_den',width=width,subplot=ax,units='kpc^-2',resolution=1000,show_cbar=False)
-                    f.savefig(f'../../Figures/Images/{args.simulation}.{args.feedback}/{hid}/{hid}.x{xrotation*dx:03d}.y{yrotation*dy:03d}.png')
+                    #f.savefig(image_path/f'/{args.simulation}.{args.feedback}/{hid}/{hid}.x{xrotation*dx:03d}.y{yrotation*dy:03d}.png')
+                    figpath = images_dir / f'{args.simulation}.{args.feedback}/{hid}/{hid}.x{xrotation*dx:03d}.y{yrotation*dy:03d}.png'
+                    print(figpath)
+                    f.savefig(figpath)
+
                     plt.close()
                     #Store data
                     current_image[f'x{xrotation*dx:03d}y{yrotation*dy:03d}'] = im
@@ -118,16 +153,37 @@ with pymp.Parallel(args.numproc) as pl:
         t_end_current = time.time()
         if args.verbose: print(f'\t\t{hid} done in {round((t_end_current-t_start_current)/60,2)} minutes.')
 
+image_file_path = root_dir / f'Data/{args.simulation}.{args.feedback}.Images.pickle'
+sb_file_path = root_dir / f'Data/{args.simulation}.{args.feedback}.Profiles.pickle'
+
 try:
-    ImageFile = pickle.load(open(f'../../Data/{args.simulation}.{args.feedback}.Images.pickle','rb'))
-    SBFile = pickle.load(open(f'../../Data/{args.simulation}.{args.feedback}.Profiles.pickle','rb'))
+    with image_file_path.open('rb') as file:
+        ImageFile = pickle.load(file)
+    with sb_file_path.open('rb') as file:
+        SBFile = pickle.load(file)
 except:
     ImageFile,SBFile = {},{}
 
+data_dir = root_dir / 'Data'
+
+# Loop through halos and update dictionaries
 for halo in halos:
-    if args.image: ImageFile[str(halo)] = ImageData[str(halo)]
+    if args.image: 
+        ImageFile[str(halo)] = ImageData[str(halo)]
     SBFile[str(halo)] = SBData[str(halo)]
-if args.image: pickle.dump(ImageFile,open(f'../../Data/{args.simulation}.{args.feedback}.Images.pickle','wb'))
-pickle.dump(SBFile,open(f'../../Data/{args.simulation}.{args.feedback}.Profiles.pickle','wb'))
+
+# Save ImageFile, if applicable
+if args.image:
+    image_file_path = data_dir / f'{args.simulation}.{args.feedback}.Images.pickle'
+    with image_file_path.open('wb') as file:
+        pickle.dump(ImageFile, file)
+
+# Save SBFile
+sb_file_path = data_dir / f'{args.simulation}.{args.feedback}.Profiles.pickle'
+with sb_file_path.open('wb') as file:
+    pickle.dump(SBFile, file)
+
+# Timing and logging
 tstop = time.time()
-myprint(f'\t{args.simulation} imaged in {round((tstop-tstart)/60,2)} minutes.',clear=True)
+myprint(f'\t{args.simulation} imaged in {round((tstop-tstart)/60,2)} minutes.', clear=True)
+

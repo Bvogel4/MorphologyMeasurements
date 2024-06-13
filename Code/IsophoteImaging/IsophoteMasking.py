@@ -19,8 +19,8 @@ def pix2kpc(pix,width):
     return(pix/1000.*width)
 
 parser = argparse.ArgumentParser(description='Collect images of all resolved halos from a given simulation. Images will be generated across all orientations.')
-parser.add_argument('-f','--feedback',choices=['BW','SB'],default='BW',help='Feedback Model')
-parser.add_argument('-s','--simulation',choices=['cptmarvel','elektra','storm','rogue','h148','h229','h242','h329'],required=True,help='Simulation to analyze')
+parser.add_argument('-f','--feedback',choices=['BW','SB','RDZ'],default='RDZ',help='Feedback Model')
+parser.add_argument('-s','--simulation',required=True,help='Simulation to analyze')
 #parser.add_argument('-o','--overwrite',action='store_true',help='Overwrite existing images')
 args = parser.parse_args()
 
@@ -177,10 +177,10 @@ def draw_figure(canvas, figure):
 def drawChart():
     _VARS['pltFig'] = plt.figure()
     plt.imshow(LogImage)
-    plt.grid(b=None)
+    #plt.grid(b=None)
     _VARS['pltFig'].axes[0].set_xlim([0,1000])
     _VARS['pltFig'].axes[0].set_ylim([0,1000])
-    plt.grid(b=None)
+    #plt.grid(b=None)
     plt.scatter(500,500,marker='+',s=10**2,c='w')
     plt.scatter(iso[1],iso[0],c='r',s=.5**2)
     _VARS['fig_agg'] = draw_figure(_VARS['window']['figCanvas'].TKCanvas,_VARS['pltFig'])
@@ -188,10 +188,10 @@ def updateChart(DrawCircle=False,DrawAngle=False,DrawEllipse=False):
     _VARS['fig_agg'].get_tk_widget().forget()
     plt.clf()
     plt.imshow(LogImage)
-    plt.grid(b=None)
+    #plt.grid(b=None)
     _VARS['pltFig'].axes[0].set_xlim([0,1000])
     _VARS['pltFig'].axes[0].set_ylim([0,1000])
-    plt.grid(b=None)
+    #plt.grid(b=None)
     plt.scatter(500,500,marker='+',s=10**2,c='w')
     plt.scatter(iso[1],iso[0],c='r',s=.5**2)
     if DrawCircle:

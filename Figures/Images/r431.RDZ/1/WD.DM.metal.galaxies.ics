@@ -1,0 +1,59 @@
+BEGIN:VCALENDAR
+PRODID:-//zoom.us//iCalendar Event//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+CLASS:PUBLIC
+BEGIN:VTIMEZONE
+TZID:America/New_York
+LAST-MODIFIED:20231222T233358Z
+TZURL:https://www.tzurl.org/zoneinfo-outlook/America/New_York
+X-LIC-LOCATION:America/New_York
+BEGIN:DAYLIGHT
+TZNAME:EDT
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+DTSTART:19700308T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:EST
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+DTSTART:19701101T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTAMP:20240312T171341Z
+DTSTART;TZID=America/New_York:20240319T130000
+DTEND;TZID=America/New_York:20240319T133000
+SUMMARY:WD/DM/metals and galaxies
+RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20240625T173000;INTERVAL=2;BYDAY=TU
+UID:ZOOM98182823462
+TZID:America/New_York
+DESCRIPTION:Blake Austin Vogel is inviting you to a scheduled Zoom meetin
+ g.\n\nJoin Zoom Meeting\nhttps://gmu.zoom.us/j/98182823462?pwd=T2E1SnpIY
+ nFVNk1LaWQ2WWdraFlJZz09\n\nMeeting ID: 981 8282 3462\nPasscode: 837814\n
+ One tap mobile\n+12678310333\,\,98182823462#\,\,\,\,*837814# US (Philade
+ lphia)\n+13017158592\,\,98182823462#\,\,\,\,*837814# US (Washington DC)\
+ n\nDial by your location\n        +1 267 831 0333 US (Philadelphia)\n   
+      +1 301 715 8592 US (Washington DC)\nMeeting ID: 981 8282 3462\nPass
+ code: 837814\nFind your local number: https://gmu.zoom.us/u/a1tZSqWDs\n\
+ nJoin by SIP\n98182823462@zoomcrc.com\n
+LOCATION:https://gmu.zoom.us/j/98182823462?pwd=T2E1SnpIYnFVNk1LaWQ2WWdraF
+ lJZz09
+ATTENDEE;CN=aengelha@gmu.edu;RSVP=TRUE:mailto:aengelha@gmu.edu
+ATTENDEE;CN=bkeller1@memphis.edu;RSVP=TRUE:mailto:bkeller1@memphis.edu
+ATTENDEE;CN=fmunshi@gmu.edu;RSVP=TRUE:mailto:fmunshi@gmu.edu
+ATTENDEE;CN=josephbramante@gmail.com;RSVP=TRUE:mailto:josephbramante@gmai
+ l.com
+ATTENDEE;CN=m.diamond@queensu.ca;RSVP=TRUE:mailto:m.diamond@queensu.ca
+ATTENDEE;CN=bvogel4@gmu.edu;RSVP=TRUE:mailto:bvogel4@gmu.edu
+BEGIN:VALARM
+TRIGGER:-PT10M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR

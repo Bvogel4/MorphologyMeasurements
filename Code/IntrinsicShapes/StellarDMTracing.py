@@ -1,17 +1,29 @@
 import pickle
 import numpy as np
 import matplotlib.pylab as plt
+import argparse
 
-SimInfo = pickle.load(open('../SimulationInfo.BW.pickle','rb'))
-mass_data = pickle.load(open('../../Data/BasicData/Marvel_DCJL.Masses.pickle','rb'))
-with open('../../Data/BasicData/HaloTypes.txt') as f:
-    halotype = f.readlines()
-    del halotype[0]
-types = {}
-for line in halotype:
-    l = line.split('\t')
-    if l[0] not in types: types[l[0]] = {}
-    types[l[0]][l[1]] = l[-2]
+
+
+parser = argparse.ArgumentParser(description='Compare Stellar and Dark Matter Distributions')
+parser.add_argument('-f','--feedback',choices=['BW','SB','RDZ'],default='RDZ',help='Feedback Model')
+args = parser.parse_args()
+
+
+SimInfo = pickle.load(open('../SimulationInfo.RDZ.pickle','rb'))
+
+mass_data = pickle.load(open('../../Data/BasicData/RDZ.Masses.pickle','rb'))
+print(mass_data)
+#print(mass_data)
+
+# with open('../../Data/BasicData/HaloTypes.txt') as f:
+#     halotype = f.readlines()
+#     del halotype[0]
+# types = {}
+# for line in halotype:
+#     l = line.split('\t')
+#     if l[0] not in types: types[l[0]] = {}
+#     types[l[0]][l[1]] = l[-2]
 
 
 
@@ -22,9 +34,9 @@ B_s,C_s,B_d,C_d = [],[],[],[]
 masses,htype,mb = [],[],[]
 
 for sim in SimInfo:
-    StShapes = pickle.load(open(f'../../Data/{sim}.BW.3DShapes.pickle','rb'))
-    DMShapes = pickle.load(open(f'../../Data/{sim}.BW.DMShapes.pickle','rb'))
-    Profiles = pickle.load(open(f'../../Data/{sim}.BW.Profiles.pickle','rb'))
+    StShapes = pickle.load(open(f'../../Data/{sim}.{args.feedback}.3DShapes.pickle','rb'))
+    DMShapes = pickle.load(open(f'../../Data/{sim}.{args.feedback}.DMShapes.pickle','rb'))
+    Profiles = pickle.load(open(f'../../Data/{sim}.{args.feedback}.Profiles.pickle','rb'))
 
     for hid in SimInfo[sim]['goodhalos']:
         try:
@@ -40,16 +52,23 @@ for sim in SimInfo:
             C_d.append(ca_d(Reff))
             T_d.append(T(ba_d(Reff),ca_d(Reff)))
             masses.append(np.log10(mass_data[sim][str(hid)]['Mstar']))
+            print('test',mass_data[sim][str(hid)]['Mstar'])
             mb.append(np.log10(mass_data[sim][str(hid)]['Mb/Mtot']))
-        except:
-            continue
-        if sim not in types:
-            htype.append('o')
-        elif str(hid) not in types[sim]:
-            htype.append('o')
+        except Exception as e:
+            print(f'error {e}')
+        # if sim not in types:
+        #     htype.append('o')
+        # elif str(hid) not in types[sim]:
+        #     htype.append('o')
+        # else:
+        #     if types[sim][str(hid)] in ['Central','Backsplash']: htype.append('o')
+        #     else: htype.append('v')
+        # Other code processing each halo...
+        if str(hid) == '1':
+            htype.append('o')  # Central or Backsplash
         else:
-            if types[sim][str(hid)] in ['Central','Backsplash']: htype.append('o')
-            else: htype.append('v')
+            htype.append('v')  # Satellite
+
 
 #Convert lists to arrays for htype indexing
 T_d,T_s,masses,mb,htype = np.array(T_d),np.array(T_s),np.array(masses),np.array(mb),np.array(htype)
@@ -87,8 +106,8 @@ for i in [0,1]:
     ax[i].text(5.83,1/6,'Oblate',fontsize=17,rotation='vertical',verticalalignment='center',c='.5')
     ax[i].text(5.83,3/6,'Triaxial',fontsize=17,rotation='vertical',verticalalignment='center',c='.5')
     ax[i].text(5.83,5/6,'Prolate',fontsize=17,rotation='vertical',verticalalignment='center',c='.5')
-ax[0].set_ylabel('T',fontsize=25)
-ax[1].set_ylabel(r'T$_*$',fontsize=25)
+ax[0].set_ylabel('T',fontsize=15)
+ax[1].set_ylabel(r'T$_*$',fontsize=15)
 ax[0].set_yticks([0,.5,1])
 ax[1].set_yticks([0,.5])
 ax[1].set_xlabel(r'Log(M$_*$/M$_\odot$)',fontsize=25)
@@ -140,3 +159,4 @@ ax.scatter(-1,-1,c='.5',marker='v',label='Satellites')
 
 ax.legend(loc='upper left',prop={'size':15})
 f.savefig(f'../../Figures/3DShapes/CvB.Links.png',bbox_inches='tight',pad_inches=.1)
+

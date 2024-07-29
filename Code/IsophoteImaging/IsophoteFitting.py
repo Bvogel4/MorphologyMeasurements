@@ -1,10 +1,26 @@
-import argparse,pickle,pymp,sys,warnings
+import argparse,pickle,pymp,sys,warnings, os
 import numpy as np
 import matplotlib.pylab as plt
 from math import pi,degrees
 from skimage.measure import EllipseModel
 from numpy import sin,cos
 from matplotlib.patches import Ellipse
+from pathlib import Path
+import pathlib
+
+# Current script directory (IsophoteImaging)
+current_dir = Path(__file__).parent
+
+# Root directory (one level up from IsophoteImaging)
+root_dir = current_dir.parent.parent
+code_dir= root_dir / 'Code'
+# Absolute path for Figures/Images directory
+images_dir = root_dir / 'Figures' / 'Images'
+data_dir = root_dir / 'Data'
+
+
+
+
 plt.rcParams.update({'text.usetex':False})
 warnings.filterwarnings("ignore")
 def myprint(string,clear=False):
@@ -19,16 +35,27 @@ def pix2kpc(pix,width):
     return(pix/1000.*width)
 
 parser = argparse.ArgumentParser(description='Collect images of all resolved halos from a given simulation. Images will be generated across all orientations.')
-parser.add_argument('-f','--feedback',choices=['BW','SB','RDZ'],default='BW',help='Feedback Model')
+parser.add_argument('-f','--feedback',default='BW',help='Feedback Model')
 parser.add_argument('-s','--simulation',required=True,help='Simulation to analyze')
 parser.add_argument('-n','--numproc',type=int,required=True,help='Number of processors to use')
 parser.add_argument('-v','--verbose',action='store_true')
 args = parser.parse_args()
 
-SimInfo = pickle.load(open(f'../SimulationInfo.{args.feedback}.pickle','rb'))
+
+SimInfo = pickle.load(open(code_dir / f'PickleFiles/SimulationInfo.{args.feedback}.pickle', 'rb'))
+
 halos = SimInfo[args.simulation]['goodhalos']
-Images = pickle.load(open(f'../../Data/{args.simulation}.{args.feedback}.Images.pickle','rb'))
-Profiles = pickle.load(open(f'../../Data/{args.simulation}.{args.feedback}.Profiles.pickle','rb'))
+
+Images = pickle.load(open(data_dir / f'{args.simulation}.{args.feedback}.Images.pickle','rb'))
+Profiles = pickle.load(open(data_dir / f'{args.simulation}.{args.feedback}.Profiles.pickle','rb'))
+
+#check if mask already exists and load it if it does
+#mask_path = '../../Data/{args.simulation}.{args.feedback}.Masking.pickle'
+mask_path = data_dir / f'{args.simulation}.{args.feedback}.Masking.pickle'
+if os.path.exists(mask_path):
+
+    oldShapeData = pickle.load(open( data_dir / f'{args.simulation}.{args.feedback}.ShapeData.pickle','rb'))
+    oldMaskData = pickle.load(open(mask_path,'rb'))
 
 ShapeData = pymp.shared.dict()
 MaskData = pymp.shared.dict()
@@ -42,6 +69,11 @@ with pymp.Parallel(args.numproc) as pl:
         current_mask = {}
         for x in np.arange(0,180,30):
             for y in np.arange(0,360,30):
+                #check to see if this image has already been analyzed
+                if os.path.exists(images_dir / f'{args.simulation}.{args.feedback}/{hid}/{hid}.x{x:03d}.y{y:03d}.Isophote.png'):
+                    current_shape[f'x{x:03d}y{y:03d}'] = oldShapeData[str(hid)][f'x{x:03d}y{y:03d}']
+                    current_mask[f'x{x:03d}y{y:03d}'] = oldMaskData[str(hid)][f'x{x:03d}y{y:03d}']
+                    continue
                 rbins = Profiles[str(hid)][f'x{x:03d}y{y:03d}']['rbins']
                 Rhalf = Profiles[str(hid)][f'x{x:03d}y{y:03d}']['Reff']
                 if np.isnan(Rhalf): Rhalf = Profiles[str(hid)][f'x{x:03d}y{y:03d}']['Rhalf']
@@ -56,7 +88,7 @@ with pymp.Parallel(args.numproc) as pl:
                         tolerance+=.01
                 
                 f,ax = plt.subplots(1,1)
-                LogImage = plt.imread(f'../../Figures/Images/{args.simulation}.{args.feedback}/{hid}/{hid}.x{x:03d}.y{y:03d}.png')
+                LogImage = plt.imread(images_dir / f'{args.simulation}.{args.feedback}/{hid}/{hid}.x{x:03d}.y{y:03d}.png')
                 ax.imshow(LogImage)
                 ax.set_xlim([0,1e3])
                 ax.set_ylim([1e3,0])
@@ -107,7 +139,7 @@ with pymp.Parallel(args.numproc) as pl:
                     current_shape[f'x{x:03d}y{y:03d}']['b'] = np.NaN
                     current_mask[f'x{x:03d}y{y:03d}'] = False
                 
-                f.savefig(f'../../Figures/Images/{args.simulation}.{args.feedback}/{hid}/{hid}.x{x:03d}.y{y:03d}.Isophote.png',bbox_inches='tight',pad_inches=.1)
+                f.savefig(images_dir / f'{args.simulation}.{args.feedback}/{hid}/{hid}.x{x:03d}.y{y:03d}.Isophote.png',bbox_inches='tight',pad_inches=.1)
                 plt.close()
                 prog[0]+=1
                 if not args.verbose: myprint(f'Fitting Isophotes for {args.simulation}: {round(prog[0]/(len(halos)*72)*100,3)}%',clear=True)
@@ -116,9 +148,13 @@ with pymp.Parallel(args.numproc) as pl:
         if args.verbose: print(f'{args.simulation}-{halos[i]} done.')
 
 #Pymp shared dictionaries 'corrupt' when saving, so transfer to standerd dict objects
+
 ShapeFile,MaskFile = {},{}
 for hid in halos:
     ShapeFile[str(hid)] = ShapeData[str(hid)]
     MaskFile[str(hid)] = MaskData[str(hid)]
-pickle.dump(ShapeFile,open(f'../../Data/{args.simulation}.{args.feedback}.ShapeData.pickle','wb'))
-pickle.dump(MaskFile,open(f'../../Data/{args.simulation}.{args.feedback}.Masking.pickle','wb'))
+
+# pickle.dump(ShapeFile,open(f'../../Data/{args.simulation}.{args.feedback}.ShapeData.pickle','wb'))
+# pickle.dump(MaskFile,open(f'../../Data/{args.simulation}.{args.feedback}.Masking.pickle','wb'))
+pickle.dump(ShapeFile,open(data_dir / f'{args.simulation}.{args.feedback}.ShapeData.pickle','wb'))
+pickle.dump(MaskFile,open(mask_path,'wb'))

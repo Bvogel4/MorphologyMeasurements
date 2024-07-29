@@ -1,3 +1,7 @@
+!Code/*.pickle
+*.sh
+*.ipynb_checkpoints
+*.exp
 *.png
 *pickle
 !Code/*.pickle

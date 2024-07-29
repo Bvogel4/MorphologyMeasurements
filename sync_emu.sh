@@ -2,7 +2,7 @@
 
 # Script to sync folders between local and remote with rsync
 
-LOCAL_FOLDER="/media/blake/Files/emu"
+LOCAL_FOLDER="/media/blake/Files1/emu"
 REMOTE_USER="bk639"
 REMOTE_HOST="emu.physics.rutgers.edu"
 REMOTE_FOLDER="/home/bk639/MorphologyMeasurements"

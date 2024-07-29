@@ -1,0 +1,17 @@
+from BWMDC import Sims
+import os
+
+# Dictionary of simulations (copy the Sims dictionary here)
+
+
+def verify_sim_paths(sims_dict):
+    print("Verifying simulation paths:")
+    for sim_name, sim_info in sims_dict.items():
+        path = sim_info['path']
+        if os.path.isfile(path):
+            print(f"[OK] {sim_name}: File exists")
+        else:
+            print(f"[ERROR] {sim_name}: File does not exist - {path}")
+
+if __name__ == "__main__":
+    verify_sim_paths(Sims)

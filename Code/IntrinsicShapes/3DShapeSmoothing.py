@@ -7,7 +7,7 @@ import pathlib
 import sys
 parser = argparse.ArgumentParser(description='Smoothly interpolate Radial Bins for Shapes')
 args = parser.parse_args()
-
+verbose = False
 
 
 # loop,remake=True,False
@@ -63,8 +63,13 @@ for t in ['DMShapes','3DShapes']:
                             reffs = []
                             if len(rbins)>0:
                                 #print('halo',hid)
+
                                 for angle in Profiles[str(hid)]:
-                                    reffs.append(Profiles[str(hid)][angle]['Reff'])
+                                    try:
+                                        reffs.append(Profiles[str(hid)][angle]['Reff'])
+                                    except IndexError:
+                                        if verbose:
+                                            print(f'IndexError angle {angle} for halo {hid} in {sim}.{feedback}.Profiles.pickle')
                                 
                                 f,ax=plt.subplots(1,1,figsize=(6,2))
                                 ax.set_xlim([0,max(rbins)])

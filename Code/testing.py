@@ -1,1 +1,0 @@
-from SimInfoDicts.sim_type_name import sim_type_name

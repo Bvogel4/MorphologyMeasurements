@@ -8,14 +8,21 @@ from pathlib import Path
 import traceback
 
 # Current script directory (IsophoteImaging)
-current_dir = Path(__file__).parent
-# Root directory (one level up from IsophoteImaging)
+current_script_path = os.path.abspath(__file__)
+current_dir = Path(current_script_path).parent
+
+# Root directory (two level up from IsophoteImaging)
 root_dir = current_dir.parent.parent
 code_dir= root_dir / 'Code'
 Siminfo_dir = code_dir / 'PickleFiles'
 # Absolute path for Figures/Images directory
 images_dir = root_dir / 'Figures' / 'Images'
-print(root_dir,images_dir)
+print(f"__file__: {__file__}")
+print(f"current_dir: {current_dir}")
+print(f"root_dir: {root_dir}")
+print(f"code_dir: {code_dir}")
+print(f"Siminfo_dir: {Siminfo_dir}")
+print(f"images_dir: {images_dir}")
 
 def myprint(string,clear=False):
     if clear:
@@ -132,10 +139,10 @@ else:
 
 sim.physical_units()
 h = sim.halos()
-#if args.image: ImageData = pymp.shared.dict()
-#SBData = pymp.shared.dict()
-ImageData = {}
-SBData = {}
+if args.image:
+    ImageData = pymp.shared.dict()
+SBData = pymp.shared.dict()
+
 myprint(f'{args.simulation} loaded.',clear=True)
 
 halos_list = pymp.shared.list()
@@ -156,9 +163,9 @@ with pymp.Parallel(args.numproc) as pl:
         current_image = {}
         current_sb = {}
         xrotation = 0
-        while xrotation*dx<20:#180:
+        while xrotation*dx<180:
             yrotation = 0
-            while yrotation*dy<20:#360:
+            while yrotation*dy<360:
                 current_sb, current_image = process_rotation(halo, hid, xrotation, yrotation, dx, dy, current_image, current_sb, ImageSpace, width)
                 if xrotation == 0 and yrotation == 0:
                     halos_list.append(hid)
@@ -173,65 +180,62 @@ with pymp.Parallel(args.numproc) as pl:
         t_end_current = time.time()
         if args.verbose: print(f'\t\t{hid} done in {round((t_end_current-t_start_current)/60,2)} minutes.')
 
-#convert shared dict to regular dict
-ImageData = dict(ImageData)
-SBData = dict(SBData)
+
+import pickle
+from pathlib import Path
 
 
-image_file_path = root_dir / f'Data/{args.simulation}.{args.feedback}.Images.pickle'
-sb_file_path = root_dir / f'Data/{args.simulation}.{args.feedback}.Profiles.pickle'
-
-if not args.overwrite:
+def load_data(file_path):
     try:
-        with image_file_path.open('rb') as file:
-            ImageFile = pickle.load(file)
-        with sb_file_path.open('rb') as file:
-            SBFile = pickle.load(file)
-    except:
-        ImageFile,SBFile = {},{}
-else:
-    ImageFile,SBFile = {},{}
+        with file_path.open('rb') as file:
+            return pickle.load(file)
+    except (FileNotFoundError, pickle.PickleError):
+        return {}
+
+
+def save_data(data, file_path):
+    with file_path.open('wb') as file:
+        pickle.dump(data, file)
+
+print(SBData)
+# Convert shared dict to regular dict
+
+image_data = dict(ImageData)
+sb_data = dict(SBData)
+print(sb_data)
 
 data_dir = root_dir / 'Data'
+image_file_path = data_dir / f'{args.simulation}.{args.feedback}.Images.pickle'
+sb_file_path = data_dir / f'{args.simulation}.{args.feedback}.Profiles.pickle'
 
-#try deleting the old files and try again
+image_file = load_data(image_file_path) if not args.overwrite else {}
+sb_file = load_data(sb_file_path) if not args.overwrite else {}
 
 # Loop through halos and update dictionaries
 for halo in halos:
-    #check if halo is in SBData
-    if str(halo) not in SBData.keys():
+    halo_str = str(halo)
+    if halo_str not in sb_data:
         print(f'{halo} not in SBData')
-        # is halo in halo_list?
-        print(f'{halo} has been proccesed? {halo in halos_list}')
+        print(f'{halo} has been processed? {halo in halos_list}')
     else:
+        print(f'{halo} in SBData')
+
         if args.image:
-            if args.overwrite:
-                ImageFile[str(halo)] = {}
             try:
-
-                ImageFile[str(halo)] = ImageData[str(halo)]
-            except:
+                image_file[halo_str] = image_data[halo_str]
+            except KeyError:
                 print(f'Error in Image dict {args.simulation} {halo}')
-                print(traceback.format_exc())
-
         try:
-            if args.overwrite:
-                SBFile[str(halo)] = {}
-            SBFile[str(halo)] = SBData[str(halo)]
-        except:
-            print(f'Error in Profile dict  {args.simulation} {halo}')
-            print(traceback.format_exc())
+            sb_file[halo_str] = sb_data[halo_str]
+        except KeyError:
+            print(f'Error in Profile dict {args.simulation} {halo}')
 
 # Save ImageFile, if applicable
 if args.image:
-    image_file_path = data_dir / f'{args.simulation}.{args.feedback}.Images.pickle'
-    with image_file_path.open('wb') as file:
-        pickle.dump(ImageFile, file)
+    save_data(image_file, image_file_path)
 
 # Save SBFile
-sb_file_path = data_dir / f'{args.simulation}.{args.feedback}.Profiles.pickle'
-with sb_file_path.open('wb') as file:
-    pickle.dump(SBFile, file)
+save_data(sb_file, sb_file_path)
 
 # Timing and logging
 tstop = time.time()

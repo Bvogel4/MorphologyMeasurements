@@ -48,6 +48,9 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     masses, htype, mb, reff, m_vir = [], [], [], [], []
     sims, hids, feedback_type = [], [], []
     merger = []
+    mb_reffs = []
+    mb_10rvirs = []
+    rvir = []
 
     for i in range(len(SimFilePath)):
         SimInfo = pickle.load(open(SimFilePath[i], 'rb'))
@@ -77,106 +80,135 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
 
             for hid in SimInfo[sim]['goodhalos']:
                 try:
+
+                    rbins, rd, ba_s_func, ca_s_func, ba_d_func, ca_d_func = [
+                        StShapes[str(hid)]['rbins'], DMShapes[str(hid)]['rbins'],
+                        StShapes[str(hid)]['ba_smooth'], StShapes[str(hid)]['ca_smooth'],
+                        DMShapes[str(hid)]['ba_smooth'], DMShapes[str(hid)]['ca_smooth']
+                    ]
+                    Reff = Profiles[str(hid)]['x000y000']['Reff'] * reff_multi
+
+                    # Get values for the current halo
+                    ba_s_value = ba_s_func(Reff)
+                    ca_s_value = ca_s_func(Reff)
+                    ba_d_value = ba_d_func(Reff)
+                    ca_d_value = ca_d_func(Reff)
+
+                    if ba_s_value < 0.25:
+                        if ca_s_value < 0.25:
+                            print(f'stellar b/a and c/a unusually low in sim {sim} halo {hid}')
+                    T_s_value = T(ba_s_value, ca_s_value)
+                    T_d_value = T(ba_d_value, ca_d_value)
+
+                    try:
+                        m_vir_value = mass_data[sim][str(hid)]['Mvir']
+                        sm = mass_data[sim][str(hid)]['Mstar']
+                        if sm == 0:
+                            print(f'Mstar is 0 in sim {sim} halo {hid}')
+                            masses_value = np.nan
+                        else:
+                            masses_value = np.log10(sm)
+                        #mb_value = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
+                        mb_value = (mass_data[sim][str(hid)]['Mb/Mtot'])
+                        mb_reff = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
+                        mb_10rvir = (mass_data[sim][str(hid)]['Mb/Mtot_within_tenth_rvir'])
+                        rvir_value = mass_data[sim][str(hid)]['Rvir']
+
+                        # print(f'Loading masses for sim {sim} halo {hid}')
+                        # print(#f"Reff: {mass_data[sim][str(hid)]['Reff']:.1f}, "
+                        #       #f"Rvir: {mass_data[sim][str(hid)]['Rvir']:.0f}, "
+                        #       #f"Reff/Rvir: {mass_data[sim][str(hid)]['Reff']/mass_data[sim][str(hid)]['Rvir']:.3f}, "
+                        #       f"Mb/Mtot: {mass_data[sim][str(hid)]['Mb/Mtot']:.3f}, "
+                        #       f"Mb/Mtot_within_reff: {mass_data[sim][str(hid)]['Mb/Mtot_within_reff']:.3f}, "
+                        #       #f"Mb/Mtot_within_reff/Mb/Mtot: {mass_data[sim][str(hid)]['Mb/Mtot_within_reff']/mass_data[sim][str(hid)]['Mb/Mtot']:.3f}",
+                        #       #f"Mvir_within_10rvir: {mass_data[sim][str(hid)]['Mvir_within_10rvir']:.3f}",
+                        #       #f"Mstar_within_10rvir: {mass_data[sim][str(hid)]['Mstar_within_10rvir']:.3f}",
+                        #       #f"Mb_within_10rvir: {mass_data[sim][str(hid)]['Mb_within_10rvir']:.3f}",
+                        #       f"Mb/Mtot_within_10rvir: {mass_data[sim][str(hid)]['Mb/Mtot_within_10rvir']:.3f}")
+                    except:
+                        print(f'Error loading masses for sim {sim} halo {hid}')
+                        print(traceback.format_exc())
+                        m_vir_value = np.nan
+                        masses_value = np.nan
+                        mb_value = np.nan
+                        mb_reff = np.nan
+                        mb_10rvir = np.nan
+                        rvir_value = np.nan
+                    # Get halo type
                     key = (sim, str(hid))
                     if key in types and types[key] in ['Central', 'Backsplash', 'Satellite']:
-                        rbins, rd, ba_s_func, ca_s_func, ba_d_func, ca_d_func = [
-                            StShapes[str(hid)]['rbins'], DMShapes[str(hid)]['rbins'],
-                            StShapes[str(hid)]['ba_smooth'], StShapes[str(hid)]['ca_smooth'],
-                            DMShapes[str(hid)]['ba_smooth'], DMShapes[str(hid)]['ca_smooth']
-                        ]
-                        Reff = Profiles[str(hid)]['x000y000']['Reff'] * reff_multi
-
-                        # Get values for the current halo
-                        ba_s_value = ba_s_func(Reff)
-                        ca_s_value = ca_s_func(Reff)
-                        ba_d_value = ba_d_func(Reff)
-                        ca_d_value = ca_d_func(Reff)
-
-                        if ba_s_value < 0.25:
-                            if ca_s_value < 0.25:
-                                print(f'stellar b/a and c/a unusually low in sim {sim} halo {hid}')
-                        T_s_value = T(ba_s_value, ca_s_value)
-                        T_d_value = T(ba_d_value, ca_d_value)
-
-                        try:
-
-                            m_vir_value = mass_data[sim][str(hid)]['Mvir']
-                            masses_value = np.log10(mass_data[sim][str(hid)]['Mstar'])
-                            mb_value = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
-                            print(mb_value)
-                        except:
-                            print(f'Error loading masses for sim {sim} halo {hid}')
-                            print(traceback.format_exc())
-                            m_vir_value = np.nan
-                            masses_value = np.nan
-                            mb_value = np.nan
                         htype_value = 'o' if types[key] in ['Central', 'Backsplash'] else 'v'
+                    else:
+                        htype_value = np.nan
 
-                        '''
-                        # Load and smooth the Es matrices
-                        Euler_s_smooth = StShapes[str(hid)]['Euler_s_smooth']
-                        phi_s = Euler_s_smooth[0](Reff)
-                        theta_s = Euler_s_smooth[1](Reff)
-                        psi_s = Euler_s_smooth[2](Reff)
-                        Es_at_Reff = np.array((phi_s,theta_s,psi_s))
-                        #print('contructing array',Es_at_Reff)
-                        #return
-
-
-                        Euler_d_smooth = DMShapes[str(hid)]['Euler_d_smooth']
-                        phi_d = Euler_d_smooth[0](Reff)
-                        theta_d = Euler_d_smooth[1](Reff)
-                        psi_d = Euler_d_smooth[2](Reff)
-                        Ed_at_Reff = np.array((phi_d,theta_d,psi_d))
-
-                        #print(phi_s-phi_d,theta_s,theta_d,psi_s,psi_d)
-                        '''
-
-                        ba_s_func(rbins)
-
-                        # Check condition and assign NaN if needed
-                        if (ba_s_value > 1 or ca_s_value > 1 or ba_d_value > 1 or ca_d_value > 1 or
-                                ba_s_value < 0.25 or ca_s_value < 0.25 or ba_d_value < 0.01 or ca_d_value < 0.01):
-                                # ):  # or ( np.log10(10**masses_value/m_vir_value) < -3):
-                                #     # print(f"sim: {sim}, hid: {hid}, ba_s: {ba_s_value:.2f}, ca_s: {ca_s_value:.2f}, ba_d: {ba_d_value:.2f}, ca_d: {ca_d_value:.2f}")
-                            ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
-                        #     T_s_value, T_d_value, masses_value, mb_value, reff_value, m_vir_value = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
-                        #     htype_value = np.nan
-                        #     # Es_at_Reff,Ed_at_Reff = np.ones((3))*np.nan,np.ones((3))*np.nan
-
-                        # Append values to lists
-                        B_s.append(ba_s_value)
-                        C_s.append(ca_s_value)
-                        T_s.append(T_s_value)
-                        B_d.append(ba_d_value)
-                        C_d.append(ca_d_value)
-                        T_d.append(T_d_value)
-                        m_vir.append(m_vir_value)
-                        masses.append(masses_value)
-                        mb.append(mb_value)
-                        htype.append(htype_value)
-                        reff.append(Reff)
-                        sims.append(sim)
-                        hids.append(hid)
-                        feedback_type.append(feedbacks[i])
-                        #append merger ratios
-
-                        #if merger ratios could not be loaded, append nan
+                    '''
+                    # Load and smooth the Es matrices
+                    Euler_s_smooth = StShapes[str(hid)]['Euler_s_smooth']
+                    phi_s = Euler_s_smooth[0](Reff)
+                    theta_s = Euler_s_smooth[1](Reff)
+                    psi_s = Euler_s_smooth[2](Reff)
+                    Es_at_Reff = np.array((phi_s,theta_s,psi_s))
+                    #print('contructing array',Es_at_Reff)
+                    #return
 
 
-                        try:
-                            merger_row = merger_ratios.loc[(merger_ratios['sim'] == sim ) & (merger_ratios['halo'] == hid)]
-                            merger_values = merger_row[['004096','004032']].values
-                        except:
-                            merger_values = np.array([[np.nan, np.nan]])
-                        #print(f'sim,halo,merger values',sim,hid,merger_values)
+                    Euler_d_smooth = DMShapes[str(hid)]['Euler_d_smooth']
+                    phi_d = Euler_d_smooth[0](Reff)
+                    theta_d = Euler_d_smooth[1](Reff)
+                    psi_d = Euler_d_smooth[2](Reff)
+                    Ed_at_Reff = np.array((phi_d,theta_d,psi_d))
 
-                        #check if merger_values is an empty array
-                        if len(merger_values) == 0:
-                            #print(f'No merger values found for sim {sim} halo {hid}')
-                            merger.append(np.array([[np.nan, np.nan]]))
-                        else:
-                            merger.append(merger_values)
+                    #print(phi_s-phi_d,theta_s,theta_d,psi_s,psi_d)
+                    '''
+
+                    ba_s_func(rbins)
+
+                    # Check condition and assign NaN if needed
+                    if (ba_s_value > 1 or ca_s_value > 1 or ba_d_value > 1 or ca_d_value > 1 or
+                            ba_s_value < 0.25 or ca_s_value < 0.25 or ba_d_value < 0.01 or ca_d_value < 0.01):
+                            # ):  # or ( np.log10(10**masses_value/m_vir_value) < -3):
+                            #     # print(f"sim: {sim}, hid: {hid}, ba_s: {ba_s_value:.2f}, ca_s: {ca_s_value:.2f}, ba_d: {ba_d_value:.2f}, ca_d: {ca_d_value:.2f}")
+                        ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
+                    #     T_s_value, T_d_value, masses_value, mb_value, reff_value, m_vir_value = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+                    #     htype_value = np.nan
+                    #     # Es_at_Reff,Ed_at_Reff = np.ones((3))*np.nan,np.ones((3))*np.nan
+
+                    # Append values to lists
+                    B_s.append(ba_s_value)
+                    C_s.append(ca_s_value)
+                    T_s.append(T_s_value)
+                    B_d.append(ba_d_value)
+                    C_d.append(ca_d_value)
+                    T_d.append(T_d_value)
+                    m_vir.append(m_vir_value)
+                    masses.append(masses_value)
+                    mb.append(mb_value)
+                    mb_reffs.append(mb_reff)
+                    mb_10rvirs.append(mb_10rvir)
+                    rvir.append(rvir_value)
+                    htype.append(htype_value)
+                    reff.append(Reff)
+                    sims.append(sim)
+                    hids.append(hid)
+                    feedback_type.append(feedbacks[i])
+                    #append merger ratios
+
+                    #if merger ratios could not be loaded, append nan
+
+
+                    try:
+                        merger_row = merger_ratios.loc[(merger_ratios['sim'] == sim ) & (merger_ratios['halo'] == hid)]
+                        merger_values = merger_row[['004096','004032']].values
+                    except:
+                        merger_values = np.array([[np.nan, np.nan]])
+                    #print(f'sim,halo,merger values',sim,hid,merger_values)
+
+                    #check if merger_values is an empty array
+                    if len(merger_values) == 0:
+                        #print(f'No merger values found for sim {sim} halo {hid}')
+                        merger.append(np.array([[np.nan, np.nan]]))
+                    else:
+                        merger.append(merger_values)
 
 
 
@@ -186,26 +218,6 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         # Es_smoothed.append(Es_at_Reff)
                         # Ed_smoothed.append(Ed_at_Reff)
                         # print('after checks and assignment',Es_at_Reff)
-                    else:
-                        print(f'No match found in sim {sim} for halo {hid}')
-                        reff.append(np.nan)
-                        B_s.append(np.nan)
-                        C_s.append(np.nan)
-                        T_s.append(np.nan)
-                        B_d.append(np.nan)
-                        C_d.append(np.nan)
-                        T_d.append(np.nan)
-                        m_vir.append(np.nan)
-                        masses.append(np.nan)
-                        mb.append(np.nan)
-                        htype.append(np.nan)
-                        feedback_type.append(feedbacks[i])
-                        sims.append(sim)
-                        hids.append(hid)
-                        merger.append( np.array([[np.nan, np.nan]])) 
-                        # Es_smoothed.append(np.ones((3))*np.nan)
-                        # Ed_smoothed.append(np.ones((3))*np.nan)
-                        # print('Failed key check',np.ones((3))*np.nan)
 
 
                 except KeyError:
@@ -231,6 +243,10 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     T_d = np.array(T_d)
     masses = np.array(masses)
     mb = np.array(mb)
+    mb_reffs = np.array(mb_reffs)
+    mb_10rvirs = np.array(mb_10rvirs)
+    rvir = np.array(rvir)
+
     htype = np.array(htype)
     reff = np.array(reff)
     m_vir = np.array(m_vir)
@@ -264,6 +280,10 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     T_d = T_d[mask]
     masses = masses[mask]
     mb = mb[mask]
+    mb_reffs = mb_reffs[mask]
+    mb_10rvirs = mb_10rvirs[mask]
+    rvir = rvir[mask]
+
     htype = htype[mask]
     reff = reff[mask]
     m_vir = m_vir[mask]
@@ -276,7 +296,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
 
     if return_sims:
         return B_s, C_s, T_s, B_d, C_d, T_d, \
-            masses, mb, htype, reff, m_vir, feedback_type, sims, hid, mergers
+            masses, mb,mb_reffs,mb_10rvirs, htype, reff, m_vir, feedback_type, sims, hid, mergers, rvir
     # if return_sims:
     #     return B_s[mask], C_s[mask], T_s[mask], B_d[mask], C_d[mask], T_d[mask], \
     #         masses, mb, htype[mask], reff[mask], m_vir, feedback_type[mask], sims[mask], hid[mask], mergers

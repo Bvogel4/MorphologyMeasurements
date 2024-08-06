@@ -1,6 +1,6 @@
 from tangos.properties.pynbody import PynbodyPropertyCalculation
+from tangos.properties import LivePropertyCalculation
 from tangos.properties.pynbody.centring import centred_calculation
-from tangos.properties import PropertyCalculation, LivePropertyCalculation
 from tangos.properties import LivePropertyCalculationInheritingMetaProperties
 import pynbody
 import numpy as np
@@ -8,6 +8,7 @@ import scipy
 from scipy.interpolate import UnivariateSpline
 from scipy.optimize import curve_fit
 from pynbody import array
+import traceback
 
 
 def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
@@ -238,10 +239,12 @@ class SmoothAxisRatio(LivePropertyCalculation):
 
     def requires_property(self):
         return ['ba_s', 'ba_d', 'ca_s', 'ca_d', 'rbins', 'reff']
+    @staticmethod
+    def smooth_shape(x, y, k=3):
+        return UnivariateSpline(x, y, k=k)
 
-    def live_calculate(self, existing_properties):
+    def calculate(self, halo, existing_properties):
         rbins = existing_properties['rbins']
-        self.rbins = rbins
         ba_s_smoothed = self.smooth_shape(rbins, existing_properties['ba_s'])
         ba_d_smoothed = self.smooth_shape(rbins, existing_properties['ba_d'])
         ca_s_smoothed = self.smooth_shape(rbins, existing_properties['ca_s'])
@@ -252,18 +255,6 @@ class SmoothAxisRatio(LivePropertyCalculation):
         ca_s_reff = ca_s_smoothed(reff)
         ca_d_reff = ca_d_smoothed(reff)
         return ba_s_smoothed(rbins), ba_d_smoothed(rbins), ca_s_smoothed(rbins), ca_d_smoothed(rbins), ba_s_reff, ba_d_reff, ca_s_reff, ca_d_reff
-
-
-    def smooth_shape(self, x, y, k=3):
-        return UnivariateSpline(x, y, k=k)
-
-
-    
-    def plot_xlabel(self):
-        return "r/kpc"
-
-    def plot_ylabel(self):
-        return "Axis ratio"
 
 
 
@@ -319,52 +310,42 @@ class Shape(PynbodyPropertyCalculation):
         return False
 
 
-
-class EffectiveRadius(PynbodyPropertyCalculation):
-    """
-    Calculates the effective radius of the halo
-    """
+class SersicFit(PynbodyPropertyCalculation):
     names = ['reff','rhalf']
 
+    @staticmethod
+    def sersic(r, mueff, reff, n):
+        return mueff + 2.5 * (0.868 * n - 0.142) * ((r / reff) ** (1. / n) - 1)
+    
+
     def calculate(self, halo, existing_properties):
+        # try:
+        halo.physical_units()
         pynbody.analysis.angmom.faceon(halo)
-        
         # Get the surface density profile
         Rhalf = pynbody.analysis.luminosity.half_light_r(halo)
-        prof = pynbody.analysis.profile.Profile(halo.s,type='lin')
-        r = prof['rbins']
-        sb = prof['sb,V']
+        prof = pynbody.analysis.profile.Profile(halo.s,type='lin',min=.25,max=5*Rhalf,ndim=2,nbins=int((5*Rhalf)/0.1)) 
+        vband = prof['sb,V']
+        smooth = np.nanmean(
+            np.pad(vband.astype(float), (0, 3 - vband.size % 3), mode='constant', constant_values=np.nan).reshape(
+                -1, 3), axis=1)
+        x = np.arange(len(smooth)) * 0.3 + 0.15
+        x[0] = .05
+        if True in np.isnan(smooth):
+            x = np.delete(x, np.where(np.isnan(smooth) == True))
+            y = np.delete(smooth, np.where(np.isnan(smooth) == True))
+        else:
+            y = smooth
+        r0 = x[int(len(x) / 2)]
+        m0 = np.mean(y[:3])
+        par, ign = curve_fit( self.sersic, x, y, p0=(m0, r0, 1), bounds=([10, 0, 0.5], [40, 100, 16.5]) )
+        reff = pynbody.array.SimArray(par[1], 'kpc')
+        return reff, Rhalf
+        # except:
+        #     print("Sersic fit failed")
+        #     print(traceback.format_exc())
+        #     return np.nan
 
-        #save profile instead, and make sercic fit a seperate live property
-
-
-        
-
-        # Fit Sersic profile
-        def sersic(r, Ie, Re, n):
-            bn = 2 * n - 1 / 3 + 0.009876 / n
-            return Ie * np.exp(-bn * ((r / Re) ** (1 / n) - 1))
-
-        try:
-            popt, _ = curve_fit(sersic, r, sb, p0=[sb[0], r[len(r) // 2], 4])
-            Ie, Re, n = popt
-            return Re , Rhalf
-        except ValueError:
-            #try to remove nans or infs
-            try:
-                print("Removing nans or infs")
-                sb = sb[np.isfinite(sb)]
-                r = r[np.isfinite(sb)]
-                popt, _ = curve_fit(sersic, r, sb, p0=[sb[0], r[len(r) // 2], 4])
-                Ie, Re, n = popt
-                return Re , Rhalf
-            except Exception as e:
-                print(e)
-                return None, None
-        except RuntimeError as r:
-            print(f"RuntimeError: {r}")
-            # If curve_fit fails, return None or some default value
-            return None,None
 
 
 class dynamical_time(PynbodyPropertyCalculation):
@@ -383,9 +364,60 @@ class dynamical_time(PynbodyPropertyCalculation):
 
 
 
-# class decomp(PynbodyPropertyCalculation)
-#     names = ['decomp']
-#
-#     def calculate(self, halo):
-#         return pynbody.analysis.decomp(halo)
+
+
+class BaryonicFractionReff(PynbodyPropertyCalculation):
+
+    names = ['Mvir_within_reff', 'Mstar_within_reff', 'Mgas_within_reff', 'Mb_mvir_within_reff']
+
+    def requires_property(self):
+        return ['reff','max_radius']
+    @staticmethod
+    def mass_properties_within_r(halo, r):
+        # halo should be in physcial units, but just in case
+        halo.physical_units()
+
+        sphere_filter = pynbody.filt.Sphere(r)
+        sphere = halo[sphere_filter]
+
+        m_tot = (sphere['mass'].sum().in_units('Msol'))
+        m_gas = (sphere.gas['mass'].sum().in_units('Msol'))
+        m_star = (sphere.star['mass'].sum().in_units('Msol'))
+        m_dm = (sphere.dm['mass'].sum().in_units('Msol'))
+        m_vir_within_r = m_gas + m_star + m_dm
+        # assert that all of these values are positive, and not close to 0 they are stored as pynbody SimArrays in units of solar masses
+        # assert that m_tot is the sum of the other masses within floating point error
+        assert np.isclose(m_tot, m_vir_within_r,
+                          rtol=1e-10), f"Total mass is {m_tot}, sum of components is {m_gas + m_star + m_dm}"
+        Mb_within_r = m_gas + m_star
+        mb_mvir_within_r = Mb_within_r / m_vir_within_r
+
+        return m_vir_within_r, m_star, m_gas, mb_mvir_within_r
+
+    def calculate(self, halo, existing_properties):
+        reff = existing_properties['reff']
+        Mvir_within_reff, Mstar_within_reff, Mgas_within_reff, mb_mvir_within_reff = self.mass_properties_within_r(
+            halo, reff)
+        return Mvir_within_reff, Mstar_within_reff, Mgas_within_reff, mb_mvir_within_reff
+
+
+
+class BaryonicFractionVirial(PynbodyPropertyCalculation):
+
+    names = ['Mvir', 'Mstar', 'Mgas', 'Mb_mvir']
+
+    def calculate(self, halo, existing_properties):
+        m_gas = halo.gas['mass'].sum().in_units('Msol').view(np.ndarray)
+        m_star = halo.star['mass'].sum().in_units('Msol').view(np.ndarray)
+        m_dm = halo.dm['mass'].sum().in_units('Msol').view(np.ndarray)
+        m_vir = halo['mass'].sum().in_units('Msol').view(np.ndarray)
+        try:
+            Mb = m_gas + m_star
+            mb_mvir = Mb / m_vir
+        except ZeroDivisionError:
+            mb_mvir = np.nan
+        
+
+        return m_vir, m_star, m_gas, mb_mvir
+
 

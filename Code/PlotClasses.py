@@ -26,7 +26,7 @@ class GeneralPlotter:
         return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
     def plot_main(self, ax: plt.Axes, x_key: str, y_key: str, show_scatter: bool = True,
-                  show_lines: bool = False, size: int = 30):
+                  show_lines: bool = False, size: int = 40):
         for mask_name, mask in self.masks.items():
             color = self.colors[mask_name]
             dm_color = self.lighten_color(color, 1.5)
@@ -35,7 +35,7 @@ class GeneralPlotter:
                 ax.scatter(self.data[f'{x_key}_d'][mask], self.data[f'{y_key}_d'][mask],
                            c=color, marker='o', s=size, alpha=1)
                 ax.scatter(self.data[f'{x_key}_s'][mask], self.data[f'{y_key}_s'][mask],
-                           c=color, marker='*', s=size, alpha=1)
+                           c=color, marker='*', s=size*1.5, alpha=1)
 
             if show_lines or not show_scatter:
                 for i in np.where(mask)[0]:

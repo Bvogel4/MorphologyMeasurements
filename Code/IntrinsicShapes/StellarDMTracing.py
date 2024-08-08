@@ -57,6 +57,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     for i in range(len(SimFilePath)):
         SimInfo = pickle.load(open(SimFilePath[i], 'rb'))
         mass_data = pickle.load(open(MassPath[i], 'rb'))
+        #print(mass_data)
         
 
         dataframe = pd.read_csv(HaloTypePath[i], sep=r'\s+')
@@ -116,11 +117,17 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         else:
                             masses_value = np.log10(sm)
                         #mb_value = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
+                        #print(mass_data[sim][str(hid)].keys())
+                        
                         mb_value = (mass_data[sim][str(hid)]['Mb/Mtot'])
                         mb_reff = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
                         mb_10rvir = (mass_data[sim][str(hid)]['Mb/Mtot_within_tenth_rvir'])
                         rvir_value = mass_data[sim][str(hid)]['Rvir']
-                        jz_jcirc_avg = mass_data[sim][str(hid)]['jz_jcirc_avg']
+                        try:
+                            jz_jcirc_avg = mass_data[sim][str(hid)]['jz_jcirc_avg']
+                        except:
+                            print(f'Error loading jz_jcirc_avg for sim {sim} halo {hid}')
+                            jx_jcirc_avg = np.nan
 
                         # print(f'Loading masses for sim {sim} halo {hid}')
                         # print(#f"Reff: {mass_data[sim][str(hid)]['Reff']:.1f}, "

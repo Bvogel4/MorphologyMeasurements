@@ -269,7 +269,17 @@ def check_halo_data_completeness(halo_data):
         'Reff', 'Rvir', 'dt_decomp', 'dt_star', 'dt_gas', 'dt_total',
         't_dyn_rvir', 'rstar', 'M_within_star', 't_dyn_rstar', 'jz_jcirc_avg', 'j_crit',
     ]
-    return all(key in halo_data and halo_data[key] is not None and not np.isnan(halo_data[key]) for key in required_keys)
+
+    missing_keys = []
+    #print(halo_data.keys(), halo_data.keys() == None)
+    for key in required_keys:
+        if key not in halo_data.keys():
+            missing_keys.append(key)
+            #print(f"Missing key: {key}")
+        #elif halo_data[key] is None or np.isnan(halo_data[key]):
+            #print(f"key {key} is None or nan {halo_data[key]}")
+
+    return len(missing_keys) == 0, missing_keys
 
 def calculate_dynamical_time(r_vir, M_halo):
     r_vir = r_vir * u.kpc
@@ -335,13 +345,17 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
 
     Reff = pynbody.array.SimArray(Profiles[str(hid)]['x000y000']['Reff'], 'kpc')
 
+
     mass_calculations = [
         ('', rvir),
         ('_within_reff', Reff),
         ('_within_tenth_rvir', rvir / 10)
     ]
 
-    results = {}
+    results = {
+        'Reff': Reff.tolist(),
+        'Rvir': rvir.tolist()
+    }
     for suffix, r in mass_calculations:
         try:
             Mvir, Mstar, Mgas, mb_mvir, HI = mass_properties_within_r(halo, r)
@@ -352,10 +366,37 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
                 f'Mb/Mtot{suffix}': float(mb_mvir),
                 f'HI{suffix}': HI.tolist() if not np.isnan(HI) else np.nan
             })
+
+            #print(results,Mvir, Mstar, Mgas, mb_mvir, HI)
         except Exception as e:
             print(f"Failed to calculate mass{suffix} for halo {hid}: {e}")
             results.update({k: np.nan for k in
                             [f'Mvir{suffix}', f'Mstar{suffix}', f'Mgas{suffix}', f'Mb/Mtot{suffix}', f'HI{suffix}']})
+
+
+    try:
+        t_dyn_rvir = calculate_dynamical_time(rvir, Mvir)
+        rstar = np.sort(halo.s['r'])[-10]
+        M_within_star = halo['mass'][halo['r'] < rstar].sum()
+        t_dyn_rstar = calculate_dynamical_time(rstar, M_within_star)
+        results.update({
+            't_dyn_rvir': t_dyn_rvir,
+            'rstar': rstar,
+            'M_within_star': M_within_star,
+            't_dyn_rstar': t_dyn_rstar
+        })
+    except Exception as e:
+        print(f"Failed to calculate dynamical time for halo {hid}: {e}")
+        t_dyn_rvir = np.nan
+        rstar = np.nan
+        M_within_star = np.nan
+        t_dyn_rstar = np.nan
+        results.update({
+            't_dyn_rvir': t_dyn_rvir,
+            'rstar': rstar,
+            'M_within_star': M_within_star,
+            't_dyn_rstar': t_dyn_rstar
+        })
 
     signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(timeout)
@@ -387,26 +428,17 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
 
         dt_total = (mdisk_star + mdisk_gas) / (mstar + mgas)
 
-        t_dyn_rvir = calculate_dynamical_time(rvir, Mvir)
-        rstar = np.sort(halo.s['r'])[-10]
-        M_within_star = halo['mass'][halo['r'] < rstar].sum()
-        t_dyn_rstar = calculate_dynamical_time(rstar, M_within_star)
+
 
         jz_jcirc = halo.s['jz_by_jzcirc']
         jz_jcirc = jz_jcirc[np.isfinite(jz_jcirc)]
         jz_jcirc_avg = np.mean(jz_jcirc)
 
         results.update({
-            'Reff': Reff,
-            'Rvir': rvir,
             'dt_decomp': dt_decomp,
             'dt_star': dt_star,
             'dt_gas': dt_gas,
             'dt_total': dt_total,
-            't_dyn_rvir': t_dyn_rvir,
-            'rstar': rstar,
-            'M_within_star': M_within_star,
-            't_dyn_rstar': t_dyn_rstar,
             'jz_jcirc_avg': jz_jcirc_avg,
             'j_crit': jcrit
         })
@@ -415,25 +447,27 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
     except TimeoutError as e:
         print(f"Timeout occurred for halo {hid}: {e}")
         print(f"Last completed step: {max(results.keys(), key=lambda k: results[k] if isinstance(results[k], (int, float)) else 0)}")
-        for key in ['dt_decomp', 'dt_star', 'dt_gas', 'dt_total', 't_dyn_rvir', 'rstar', 'M_within_star', 't_dyn_rstar', 'jz_jcirc_avg']:
-            if key not in results:
-                results[key] = np.nan
+        results.update({k: np.nan for k in ['dt_decomp', 'dt_star', 'dt_gas', 'dt_total', 'jz_jcirc_avg', 'j_crit']})
     finally:
         signal.alarm(0)  # Disable the alarm
 
     return results
 
 def save_progress(simulation, masses, feedback):
-    checkpoint_file = f"../../Data/BasicData/{feedback}.{simulation}.Masses.checkpoint.pickle"
+    checkpoint_file = f"../../Data/BasicData/{feedback}.{simulation}.Masses.pickle"
     with open(checkpoint_file, 'wb') as f:
         pickle.dump(masses, f)
 
 
 def load_progress(simulation, feedback):
-    checkpoint_file = f"../../Data/BasicData/{feedback}.{simulation}.Masses.checkpoint.pickle"
+    checkpoint_file = f"../../Data/BasicData/{feedback}.{simulation}.Masses.pickle"
     if os.path.exists(checkpoint_file):
         with open(checkpoint_file, 'rb') as f:
-            return pickle.load(f)
+            try:
+                return pickle.load(f)
+            except:
+                print(f"Failed to load checkpoint file {checkpoint_file}")
+                return {}
     return {}
 
 
@@ -445,37 +479,79 @@ def process_simulation(simulation, SimInfo, Profiles, feedback):
         print(f"Path does not exist: {simpath}")
         return {}
 
+    #check if the simulation has already been fully processed before loading it
+
     masses = load_progress(simulation, feedback)
+    if len(masses) == 0:
+        sim_done = False
+    else:
+        sim_done = True
+    print(masses.keys())
+    print(halos)
+
+    for halo_id in halos:
+        halo_id = str(halo_id)
+        try:
+            halo_data = masses[halo_id]
+            all_keys, missing_keys = check_halo_data_completeness(halo_data)
+            if not all_keys:
+                sim_done = False
+                break
+        except KeyError:
+            sim_done = False
+            break
+
+
+
+    if sim_done:
+        print(f"Skipping already fully processed simulation {simulation}")
+        return masses
+
+    masses = pymp.shared.dict(masses)
 
     with load_simulation(simpath) as sim:
         h = sim.halos()
-
-        with pymp.Parallel(num_threads=2) as p:
+        with pymp.Parallel(4) as p:
+            # for hid in range(len(halos)):
             for hid in p.range(len(halos)):
                 halo_id = str(halos[hid])
-                if halo_id in masses and check_halo_data_completeness(masses[halo_id]):
+                try:
+                    halo_data = masses[halo_id]
+
+                except KeyError:
+                    halo_data = {}
+
+                all_keys, missing_keys = check_halo_data_completeness(halo_data)
+                if all_keys:
                     print(f"Skipping already processed and complete halo {halo_id} in simulation {simulation}")
                     continue
                 try:
                     halo = h[halos[hid]]
-                    result = process_halo(halo, halos[hid], Profiles)
-                    if result and check_halo_data_completeness(result):
-                        masses[halo_id] = result
-                        save_progress(simulation, masses, feedback)
+                    halo_data = process_halo(halo, halos[hid], Profiles)
+                    all_keys, missing_keys = check_halo_data_completeness(halo_data)
+                    masses[halo_id] = halo_data
+                    save_progress(simulation, masses, feedback)
+                    if all_keys:
+                        print(f'all keys present for halo {halo_id} in simulation {simulation}')
                     else:
-                        print(f"Incomplete data for halo {halo_id} in simulation {simulation}. Will reprocess next time.")
+                        masses[halo_id] = halo_data
+                        print(f'Failed to process halo {halo_id} in simulation {simulation}. Missing keys: {missing_keys}')
+
                     del halo
                 except Exception as e:
                     del halo
                     print(f"Failed to process halo {halos[hid]} in simulation {simulation}: {e}")
                     print(traceback.format_exc())
         del h
+    #convert to normal dict
+    masses = dict(masses)
+    return masses
 
 
 def main():
     for feedback, use_sim in sim_type_name.items():
-        if feedback == 'MerianCDM':
-            continue
+        # if feedback != 'MerianCDM':
+        #     continue
 
         if not use_sim:
             continue
@@ -503,8 +579,10 @@ def main():
 
             all_sim_masses[simulation] = process_simulation(simulation, SimInfo, Profiles, feedback)
 
-        with open(f"../../Data/BasicData/{feedback}.Masses.pickle", 'wb') as f:
-            pickle.dump(all_sim_masses, f)
+            print(f"Finished calculating masses for simulation {simulation}. Results saved")
+            #print(all_sim_masses[simulation])
+            with open(f"../../Data/BasicData/{feedback}.Masses.pickle", 'wb') as f:
+                pickle.dump(all_sim_masses, f)
 
         print(f"Finished calculating masses for all simulations runs {feedback}. Results saved")
 

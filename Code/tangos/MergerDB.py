@@ -19,7 +19,7 @@ for sim, halo in zip(sims, merger_halos):
 
     # Command 2: Write reff and ba_s
     #example command 
-    cmd2 = f"tangos write reff ba_s --sim {sim} --include-only=\"latest().halo_number()=={halo}\" --include-only=\"t()>10\" --backwards --backend=multiprocessing-15 --with-prerequisites"
+    cmd2 = f"tangos write reff ba_s --sim {sim} --include-only=\"latest().halo_number()=={halo}\" --include-only=\"t()>10\" --backwards --with-prerequisites"
     run_command(cmd2)
 
 print("All commands executed.")

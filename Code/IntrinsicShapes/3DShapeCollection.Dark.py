@@ -32,8 +32,8 @@ args = parser.parse_args()
 
 
 #custom to rerun specific simulations r431, r615 ,r618, r634 even without overwrite
-if args.simulation in ['r615','r618','r634']:
-    args.overwrite = True
+# if args.simulation in ['r615','r618','r634']:
+#     args.overwrite = True
 
 
 if not args.overwrite:

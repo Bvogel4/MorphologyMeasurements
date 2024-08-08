@@ -51,6 +51,8 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     mb_reffs = []
     mb_10rvirs = []
     rvir = []
+    diffs_at_Reff = []
+    jz_jcirc_avgs = []
 
     for i in range(len(SimFilePath)):
         SimInfo = pickle.load(open(SimFilePath[i], 'rb'))
@@ -93,6 +95,11 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                     ca_s_value = ca_s_func(Reff)
                     ba_d_value = ba_d_func(Reff)
                     ca_d_value = ca_d_func(Reff)
+                    try:
+                        diff_at_Reff = StShapes[str(hid)]['diff_at_Reff']
+                    except KeyError:
+                        print(f'Error loading diff_at_Reff for sim {sim} halo {hid}')
+                        diff_at_Reff = np.nan
 
                     if ba_s_value < 0.25:
                         if ca_s_value < 0.25:
@@ -113,6 +120,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         mb_reff = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
                         mb_10rvir = (mass_data[sim][str(hid)]['Mb/Mtot_within_tenth_rvir'])
                         rvir_value = mass_data[sim][str(hid)]['Rvir']
+                        jz_jcirc_avg = mass_data[sim][str(hid)]['jz_jcirc_avg']
 
                         # print(f'Loading masses for sim {sim} halo {hid}')
                         # print(#f"Reff: {mass_data[sim][str(hid)]['Reff']:.1f}, "
@@ -134,6 +142,8 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         mb_reff = np.nan
                         mb_10rvir = np.nan
                         rvir_value = np.nan
+                        jz_jcirc_avg = np.nan
+
                     # Get halo type
                     key = (sim, str(hid))
                     if key in types and types[key] in ['Central', 'Backsplash', 'Satellite']:
@@ -180,6 +190,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                     B_d.append(ba_d_value)
                     C_d.append(ca_d_value)
                     T_d.append(T_d_value)
+                    diffs_at_Reff.append(diff_at_Reff)
                     m_vir.append(m_vir_value)
                     masses.append(masses_value)
                     mb.append(mb_value)
@@ -191,6 +202,8 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                     sims.append(sim)
                     hids.append(hid)
                     feedback_type.append(feedbacks[i])
+                    jz_jcirc_avgs.append(jz_jcirc_avg)
+
                     #append merger ratios
 
                     #if merger ratios could not be loaded, append nan
@@ -241,11 +254,13 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     B_d = np.array(B_d)
     C_d = np.array(C_d)
     T_d = np.array(T_d)
+    diffs_at_Reff = np.array(diffs_at_Reff)
     masses = np.array(masses)
     mb = np.array(mb)
     mb_reffs = np.array(mb_reffs)
     mb_10rvirs = np.array(mb_10rvirs)
     rvir = np.array(rvir)
+    jz_jcirc_avg = np.array(jz_jcirc_avgs)
 
     htype = np.array(htype)
     reff = np.array(reff)
@@ -278,11 +293,14 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     B_d = B_d[mask]
     C_d = C_d[mask]
     T_d = T_d[mask]
+    diffs_at_Reff = diffs_at_Reff[mask]
     masses = masses[mask]
     mb = mb[mask]
     mb_reffs = mb_reffs[mask]
     mb_10rvirs = mb_10rvirs[mask]
     rvir = rvir[mask]
+    jz_jcirc_avg = jz_jcirc_avg[mask]
+
 
     htype = htype[mask]
     reff = reff[mask]
@@ -296,7 +314,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
 
     if return_sims:
         return B_s, C_s, T_s, B_d, C_d, T_d, \
-            masses, mb,mb_reffs,mb_10rvirs, htype, reff, m_vir, feedback_type, sims, hid, mergers, rvir
+            masses, mb,mb_reffs,mb_10rvirs, htype, reff, m_vir, feedback_type, sims, hid, mergers, rvir, diffs_at_Reff, jz_jcirc_avg
     # if return_sims:
     #     return B_s[mask], C_s[mask], T_s[mask], B_d[mask], C_d[mask], T_d[mask], \
     #         masses, mb, htype[mask], reff[mask], m_vir, feedback_type[mask], sims[mask], hid[mask], mergers

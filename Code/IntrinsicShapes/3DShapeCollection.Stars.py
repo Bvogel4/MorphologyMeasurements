@@ -34,8 +34,8 @@ parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite ex
 args = parser.parse_args()
 
 #custom to rerun specific simulations r431, r615 ,r618, r634 even without overwrite
-if args.simulation in ['r615','r618','r634']:
-    args.overwrite = True
+# if args.simulation in ['r615','r618','r634']:
+#     args.overwrite = True
 
 #try and load output file if it already exists
 #ignore if overwrite is set
@@ -99,7 +99,7 @@ with pymp.Parallel(args.numproc) as pl:
             #to get the new z axis
             #along the axis of rbins
 
-            #current['angle'] = angle
+            current['angle'] = angle
             current['Es'] = Es
             current['N_s'] = len(halo.s)
 

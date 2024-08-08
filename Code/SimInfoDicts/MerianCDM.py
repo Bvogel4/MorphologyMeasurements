@@ -36,5 +36,5 @@ Sims = {
     "r918": {'path': '/home/bk639/data/MerianCDM/r918.romulus25.3072g1HsbBH/r918.romulus25.3072g1HsbBH.004096/r918.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
     "r968": {'path': '/home/bk639/data/MerianCDM/r968.romulus25.3072g1HsbBH/r968.romulus25.3072g1HsbBH.004096/r968.romulus25.3072g1HsbBH.004096', 'halos': [3], 'goodhalos': [3]},
     "r977": {'path': '/home/bk639/data/MerianCDM/r977.romulus25.3072g1HsbBH/r977.romulus25.3072g1HsbBH.004096/r977.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
-    "r1023": {'path': '/home/bk639/data/MerianCDM/r1023.romulus25.3072g1HsbBH/r1023.romulus25.3072g1HsbBH.004096/r1023.romulus25.3072g1HsbBH.004096', 'halos': [3], 'goodhalos': [3]},
+    "r1023": {'path': '/home/bk639/data/MerianCDM/r1023.romulus25.3072g1HsbBH/r1023.romulus25.3072g1HsbBH.004096/r1023.romulus25.3072g1HsbBH.004096', 'halos': [2], 'goodhalos': [2]},
 }

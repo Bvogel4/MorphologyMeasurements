@@ -1,33 +1,50 @@
-import os
-import pickle
-import sys
-import pynbody
-import numpy as np
-import pathlib
-import traceback
-import gc
-from contextlib import contextmanager
-from astropy import units as u
-from astropy import constants as const
-import pymp
-
-import os
-import pickle
-import sys
-import pynbody
-import numpy as np
-import pathlib
-import traceback
-import gc
-from contextlib import contextmanager
-from astropy import units as u
-from astropy import constants as const
-import pymp
-
 # Add the path to the directory containing the SimInfoDicts package to the system path
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from SimInfoDicts.sim_type_name import sim_type_name
+# sys.path.append(str(pathlib.Path(__file__).parent.parent))
+# from SimInfoDicts.sim_type_name import sim_type_name
 
+import os
+import pickle
+import sys
+import pynbody
+import numpy as np
+import pathlib
+import traceback
+import gc
+from contextlib import contextmanager
+from astropy import units as u
+from astropy import constants as const
+import pymp
+from pathlib import Path
+import os
+import pickle
+import sys
+import pynbody
+import numpy as np
+import pathlib
+import traceback
+import gc
+from contextlib import contextmanager
+from astropy import units as u
+from astropy import constants as const
+import pymp
+
+# Get the absolute path of the current script
+current_script_path = Path(__file__).resolve()
+
+# Get the parent directory of the current script (HaloProperties)
+current_dir = current_script_path.parent
+
+# Get the parent directory of HaloProperties (which should be 'Code')
+code_dir = current_dir.parent
+
+# Add the Code directory to sys.path
+sys.path.insert(0, str(code_dir))
+
+print("Updated sys.path:", sys.path)
+print("Current working directory:", os.getcwd())
+print(f"SimInfoDicts path: {code_dir / 'SimInfoDicts'}")
+print(f"SimInfoDicts exists: {(code_dir / 'SimInfoDicts').exists()}")
+from SimInfoDicts.sim_type_name import sim_type_name
 import signal
 import time
 
@@ -325,15 +342,17 @@ def load_simulation(simpath):
 
 
 def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by default
+    
+    print(f"aligning halo {hid}")
     try:
-        pynbody.analysis.halo.center(halo, mode='hyb')
+        pynbody.analysis.angmom.faceon(halo)
     except:
-        try:
-            pynbody.analysis.halo.center(halo, mode='ssc')
-        except:
-            print(f"Failed to center halo {hid}")
-            return None
+        print(f"Failed to align halo {hid}")
+        print(traceback.format_exc())
+        return {}
 
+
+    print(f"Processing mass properties for halo {hid}")
     rvir = max(halo['r'])
     mvir = halo['mass'].sum()
     mstar = halo.star['mass'].sum()
@@ -372,7 +391,7 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
             print(f"Failed to calculate mass{suffix} for halo {hid}: {e}")
             results.update({k: np.nan for k in
                             [f'Mvir{suffix}', f'Mstar{suffix}', f'Mgas{suffix}', f'Mb/Mtot{suffix}', f'HI{suffix}']})
-
+    print(f"Calculating dynamical time for halo {hid}")
 
     try:
         t_dyn_rvir = calculate_dynamical_time(rvir, Mvir)
@@ -400,11 +419,12 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
 
     signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(timeout)
+    print(f"Starting decomposition analysis for halo {hid}")
 
     try:
         start_time = time.time()
 
-        pynbody.analysis.angmom.faceon(halo)
+        #pynbody.analysis.angmom.faceon(halo)
         results['faceon_time'] = time.time() - start_time
 
         angmom_size = str(Reff * 3) + ' kpc'
@@ -501,23 +521,22 @@ def process_simulation(simulation, SimInfo, Profiles, feedback):
             sim_done = False
             break
 
-
-
     if sim_done:
         print(f"Skipping already fully processed simulation {simulation}")
         return masses
 
     masses = pymp.shared.dict(masses)
-
+    print(f"Processing simulation {simulation}")
     with load_simulation(simpath) as sim:
         h = sim.halos()
-        with pymp.Parallel(4) as p:
-            # for hid in range(len(halos)):
+        with pymp.Parallel(10) as p:
+            #for hid in range(len(halos)):
+                #print(f"Processing halo {halos[hid]} in simulation {simulation}")
             for hid in p.range(len(halos)):
+                print(f"Processing halo {halos[hid]} in simulation {simulation}")
                 halo_id = str(halos[hid])
                 try:
                     halo_data = masses[halo_id]
-
                 except KeyError:
                     halo_data = {}
 
@@ -530,21 +549,23 @@ def process_simulation(simulation, SimInfo, Profiles, feedback):
                     halo_data = process_halo(halo, halos[hid], Profiles)
                     all_keys, missing_keys = check_halo_data_completeness(halo_data)
                     masses[halo_id] = halo_data
-                    save_progress(simulation, masses, feedback)
+
                     if all_keys:
                         print(f'all keys present for halo {halo_id} in simulation {simulation}')
                     else:
                         masses[halo_id] = halo_data
                         print(f'Failed to process halo {halo_id} in simulation {simulation}. Missing keys: {missing_keys}')
-
                     del halo
                 except Exception as e:
                     del halo
                     print(f"Failed to process halo {halos[hid]} in simulation {simulation}: {e}")
                     print(traceback.format_exc())
+        masses = dict(masses)
+        save_progress(simulation, masses, feedback)
+
         del h
     #convert to normal dict
-    masses = dict(masses)
+    #masses = dict(masses)
     return masses
 
 

@@ -26,16 +26,16 @@ class GeneralPlotter:
         return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
     def plot_main(self, ax: plt.Axes, x_key: str, y_key: str, show_scatter: bool = True,
-                  show_lines: bool = False, size: int = 40):
+                  show_lines: bool = False, size: int = 35):
         for mask_name, mask in self.masks.items():
             color = self.colors[mask_name]
             dm_color = self.lighten_color(color, 1.5)
 
             if show_scatter:
                 ax.scatter(self.data[f'{x_key}_d'][mask], self.data[f'{y_key}_d'][mask],
-                           c=color, marker='o', s=size, alpha=1)
+                           c=color, marker='o', s=size, alpha=.7, zorder=10)
                 ax.scatter(self.data[f'{x_key}_s'][mask], self.data[f'{y_key}_s'][mask],
-                           c=color, marker='*', s=size*1.5, alpha=1)
+                           c=color, marker='*', s=size*1.5, alpha=.7,zorder=10)
 
             if show_lines or not show_scatter:
                 for i in np.where(mask)[0]:
@@ -95,7 +95,8 @@ class GeneralPlotter:
         ax_main.set_xlim([0, 1])
         ax_main.set_ylim([0, 1])
         ax_main.plot([0, 1], [0, 1], c='0.5', linestyle='--')
-        ax_main.grid(True)
+        #make grid last so it doesn't interfere with the plot
+        ax_main.grid(True, zorder = 0)
         ax_main.tick_params(which='both', labelsize=15)
 
         # Remove tick marks for histograms

@@ -62,7 +62,10 @@ def process_simulation(simulation, feedback, subdir, gen_im, numproc, verbose, o
     if type == 'I':
         os.system(f"{sys.executable} {subdir}/ImageCollection.py -f {feedback} -s {simulation} {gen_im} -n {numproc} {verbose} {overwrite}")
     elif type == 'S':
-        os.system(f"{sys.executable} {subdir}/3DShapeCollection.{stype}.py -f {feedback} -s {simulation} -n {numproc} {verbose} {overwrite}")
+        # os.system(f"{sys.executable} {subdir}/3DShapeCollection.{stype}.py -f {feedback} -s {simulation} -n {numproc} {verbose} {overwrite}")
+        os.system(
+            f"{sys.executable} {subdir}/3DShapeCollection.py -f {feedback} -s {simulation} -n {numproc} {verbose} {overwrite}")
+
     elif type=='G':
         os.system(f"{sys.executable} {subdir}/GalaCollector.py -f {feedback} -s {simulation} -n {numproc} {gen_im} {verbose}")
     elif type=='M':

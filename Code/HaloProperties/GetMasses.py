@@ -353,6 +353,13 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
 
 
     print(f"Processing mass properties for halo {hid}")
+    rvir = halo['Rhalo']
+    mvir = halo['Mhalo']
+
+    rvir = halo['Rvir']
+    mvir = halo['Mvir']
+
+
     rvir = max(halo['r'])
     mvir = halo['mass'].sum()
     mstar = halo.star['mass'].sum()

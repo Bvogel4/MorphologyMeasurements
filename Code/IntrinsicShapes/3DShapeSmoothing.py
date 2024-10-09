@@ -1,6 +1,7 @@
 import os,pickle
 import matplotlib.pylab as plt
 from scipy.interpolate import UnivariateSpline as Smooth
+import numpy as np
 import argparse
 import traceback
 import pathlib
@@ -9,6 +10,106 @@ parser = argparse.ArgumentParser(description='Smoothly interpolate Radial Bins f
 args = parser.parse_args()
 verbose = False
 
+
+from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import interp1d
+
+import numpy as np
+from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import interp1d
+
+
+def gaussian_smooth(x, y, distance=0.2, sigma=6):
+    sorted_indices = np.argsort(x)
+    x_sorted = x[sorted_indices]
+    y_sorted = y[sorted_indices]
+
+    # Create a new array for smoothed y values
+    y_smooth = np.zeros_like(y_sorted)
+
+    for i, xi in enumerate(x_sorted):
+        # Find indices of points within the specified distance
+        mask = np.abs(x_sorted - xi) <= distance
+        x_window = x_sorted[mask]
+        y_window = y_sorted[mask]
+
+        # Apply Gaussian smoothing to the window
+        if len(y_window) > 1:
+            y_smooth[i] = gaussian_filter1d(y_window, sigma)[0]
+        else:
+            y_smooth[i] = y_window[0]
+
+    # Clip values between 0 and 1
+    y_smooth = np.clip(y_smooth, 0, 1)
+
+    # Create an interpolation function
+    f = interp1d(x_sorted, y_smooth, kind='cubic', fill_value='extrapolate')
+
+    # Display a warning if y values are not between 0 and 1
+    if np.any(y_smooth < 0) or np.any(y_smooth > 1):
+        print(
+            'Warning: Some smoothed values are not in the physical range [0, 1]')
+
+    # # Return a callable function that clips the output between 0 and 1
+    # return lambda x_new: np.clip(f(x_new), 0, 1)
+    return f
+
+
+def nanfunction(x):
+    return x*0 +10
+
+from scipy.interpolate import UnivariateSpline
+def smooth_and_filter_data(rbins, ba, ca, k=5, s_factor=0.01, residual_threshold=0.3, jump_threshold=0.3, jump_percentage=0.2):
+    """
+    Smooth and filter data, removing outliers and checking for large jumps.
+
+    Parameters:
+    rbins: array-like, x coordinates
+    ba, ca: array-like, y coordinates for two datasets
+    k: int, degree of the smoothing spline (default 5)
+    s_factor: float, smoothing factor as a fraction of len(rbins) (default 0.01)
+    residual_threshold: float, threshold for removing points based on residuals (default 0.3)
+    jump_threshold: float, threshold for detecting large jumps (default 0.3)
+    jump_percentage: float, percentage of data allowed to have large jumps (default 0.1)
+
+    Returns:
+    rbins, ba, ca: filtered arrays
+    ba_s, ca_s: smoothed spline functions
+    """
+
+
+    # Check for large jumps
+    ba_diff = np.abs(np.diff(ba))
+    ca_diff = np.abs(np.diff(ca))
+    large_jumps = (ba_diff > jump_threshold) | (ca_diff > jump_threshold)
+
+    if np.sum(large_jumps) > (len(rbins) - 1) * jump_percentage:
+        print(f"Warning: More than {jump_percentage*100}% of the data has successive jumps greater than {jump_threshold}")
+
+        return rbins, ba, ca, nanfunction, nanfunction
+
+    
+    def Smooth(x, y, k, s):
+        return UnivariateSpline(x, y, k=k, s=s)
+
+    # Initial smoothing
+    s = len(rbins) * s_factor
+    ba_s, ca_s = Smooth(rbins, ba, k=k, s=s), Smooth(rbins, ca, k=k, s=s)
+
+    # Calculate residuals and create mask
+    res_ba = np.abs(ba_s(rbins) - ba)
+    res_ca = np.abs(ca_s(rbins) - ca)
+    mask = (res_ba < residual_threshold) & (res_ca < residual_threshold)
+
+    # Apply mask
+    rbins, ba, ca = rbins[mask], ba[mask], ca[mask]
+
+
+
+    # Recalculate the smoothed line
+    ba_s, ca_s = Smooth(rbins, ba, k=k, s=s), Smooth(rbins, ca, k=k, s=s)
+
+    return rbins, ba, ca, ba_s, ca_s
 
 # loop,remake=True,False
 # while loop:
@@ -77,17 +178,19 @@ for t in ['DMShapes','3DShapes']:
                                 ax.set_xlabel('R [kpc]',fontsize=15)
                                 ax.set_ylabel('Axis Ratio',fontsize=15)
                                 ax.tick_params(which='both',labelsize=10)
-                
+                                rbins, ba, ca, ba_s, ca_s = smooth_and_filter_data(
+                                    rbins, ba, ca)
                                 ax.plot(rbins,ba,c='k',label='B/A')
                                 ax.plot(rbins,ca,c='k',linestyle='--',label='C/A')
-                                if f'{sim}-{hid}' in windows[t]:
-                                    w = windows[t][f'{sim}-{hid}']
-                                    ba = ba[(rbins<w[0])|(rbins>w[1])]
-                                    ca = ca[(rbins<w[0])|(rbins>w[1])]
-                                    rbins = rbins[(rbins<w[0])|(rbins>w[1])]
+                                # if f'{sim}-{hid}' in windows[t]:
+                                #     w = windows[t][f'{sim}-{hid}']
+                                #     ba = ba[(rbins<w[0])|(rbins>w[1])]
+                                #     ca = ca[(rbins<w[0])|(rbins>w[1])]
+                                #     rbins = rbins[(rbins<w[0])|(rbins>w[1])]
                                     # Assuming you have a rough idea of how much you want to smooth the data
             
-                                ba_s,ca_s = Smooth(rbins,ba,k=3),Smooth(rbins,ca,k=3)
+                                #ba_s,ca_s = Smooth(rbins,ba,k=3),Smooth(rbins,ca,k=3)
+                                #ba_s,ca_s = gaussian_smooth(rbins,ba,distance=0.2,sigma=6),gaussian_smooth(rbins,ca,distance=0.2,sigma=6)
                                 #if sim == 'r468':
                                 # Assuming you have a rough idea of how much you want to smooth the data
                                     #smoothing_factor = 1/50  # some value representing the trade-off between smoothness and fitting

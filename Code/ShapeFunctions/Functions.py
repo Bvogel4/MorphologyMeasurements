@@ -177,9 +177,8 @@ def halo_shape_stellar(sim, N=100, rin=None, rout=None, bins='equal', ret_pos=Fa
     for i in range(0,N):
 
         # Initialise convergence criterion:
-        tol = .1
+        tol = 1E-3
         count = 0
-
         # Define initial spherical shell:
         a=b=c = rbin[i]
         E = np.identity(3)
@@ -240,7 +239,7 @@ def halo_shape_stellar(sim, N=100, rin=None, rout=None, bins='equal', ret_pos=Fa
                 break
 
             # Increase tolerance if convergence has stagnated:
-            elif (count%10 == 0): tol *= 5.
+            elif (count%15 == 0): tol *= 5.
 
             # Reset a,b,c for the next iteration:
             a,b,c = anew,bnew,cnew

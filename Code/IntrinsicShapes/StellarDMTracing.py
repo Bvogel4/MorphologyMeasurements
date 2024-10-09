@@ -7,6 +7,11 @@ from matplotlib.colors import Normalize
 import traceback
 import matplotlib.gridspec as gridspec
 import seaborn as sns
+from astropy import units as u
+from astropy import constants as const
+from scipy.optimize import curve_fit
+import warnings
+
 
 '''
 Obviously need SimInfo pickles from Config_dir
@@ -23,11 +28,63 @@ try/except blocks should catch any mismatches, so don't need to worry too much a
 colors = {'MerianCDM':'r','BWMDC':'b'}
 
 
+def power_law(x, a, b, c):
+    return a * x**b + c
+
+
+def fit_and_plot(r, m, Reff, sim, hid):
+    merging_galaxies = {'r615': 1, 'r618': 1, 'elektra': 3, 'storm': 4, 'rogue': 1, 'h148': 3}
+
+    # Sort arrays by r
+    r, m = zip(*sorted(zip(r, m)))
+    r = np.array(r)
+    m = np.array(m)
+
+    # Fit the power-law function to the data points
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params, pcov = curve_fit(power_law, r, m, p0=[1e8, 0.5, 0], maxfev=10000)
+    except (RuntimeError) as e:
+        print(f'Warning: Error fitting power-law for sim {sim} halo {hid}: {str(e)}')
+        return None, None
+
+    # Generate fitted data
+    rfit = np.linspace(min(r), max(r), 100)
+    m_fit = power_law(rfit, *params)
+
+    # Guess mass at x*Reff
+    x = 10
+    m_vir_value = power_law(x * Reff, *params)
+
+    # if sim in merging_galaxies.keys() and hid == merging_galaxies[sim]:
+    #     # Plotting
+    #     fig, ax = plt.subplots()
+    #     ax.scatter(r, m, label='Data')
+    #     ax.plot(rfit, m_fit, label=f'Fitted Curve (a={params[0]:.2e}, b={params[1]:.2f}, c={params[2]:.2e})')
+    #     ax.scatter(x * Reff, m_vir_value, label='5*Reff')
+    #     ax.set_xlabel('Radius')
+    #     ax.set_ylabel('Mass')
+    #     ax.legend()
+    #     plt.title(f'Power-law fit for sim={sim}, hid={hid}')
+    #     plt.show()
+
+    return params, m_vir_value
+
+
+
+def calculate_dynamical_time(r_vir, M_halo):
+    r_vir = r_vir * u.kpc
+    M_halo = M_halo * u.solMass
+    t_dyn = np.sqrt(r_vir ** 3 / (const.G * M_halo))
+    return t_dyn.to(u.Gyr).value
+
+
 def T(ba, ca):
     return ((1 - ba ** 2) / (1 - ca ** 2))
 
 
-def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
+def LoadSimData(feedbacks, reff_multi=1, return_sims=False, fixed_r=False):
 
     # Initialize paths
     SimFilePath = []
@@ -53,6 +110,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     rvir = []
     diffs_at_Reff = []
     jz_jcirc_avgs = []
+    t_dyn = []
 
     for i in range(len(SimFilePath)):
         SimInfo = pickle.load(open(SimFilePath[i], 'rb'))
@@ -82,6 +140,10 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                 continue
 
             for hid in SimInfo[sim]['goodhalos']:
+
+                if sim == 'cptmarvel' and hid == 10:
+                    continue
+
                 try:
 
                     rbins, rd, ba_s_func, ca_s_func, ba_d_func, ca_d_func = [
@@ -90,21 +152,35 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         DMShapes[str(hid)]['ba_smooth'], DMShapes[str(hid)]['ca_smooth']
                     ]
                     Reff = Profiles[str(hid)]['x000y000']['Reff'] * reff_multi
+                    if fixed_r:
+                        Reff = reff_multi
 
                     # Get values for the current halo
-                    ba_s_value = ba_s_func(Reff)
-                    ca_s_value = ca_s_func(Reff)
-                    ba_d_value = ba_d_func(Reff)
-                    ca_d_value = ca_d_func(Reff)
+                    try:
+                        ba_s_value = ba_s_func(Reff)
+                        ca_s_value = ca_s_func(Reff)
+                        ba_d_value = ba_d_func(Reff)
+                        ca_d_value = ca_d_func(Reff)
+                    except:
+                        print(f'Error loading shape data for sim {sim} halo {hid}')
+                        ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
+
+                    try:
+                        assert ba_s_value > 0 and ca_s_value > 0 and ba_d_value > 0 and ca_d_value > 0 and ba_s_value <= 1 and ca_s_value <= 1 and ba_d_value <= 1 and ca_d_value <= 1
+                    except AssertionError:
+                        print(f'sim {sim} halo {hid} has invalid shape values')
+                        print(f'ba_s: {ba_s_value}, ca_s: {ca_s_value}, ba_d: {ba_d_value}, ca_d: {ca_d_value}')
+                        ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
+
                     try:
                         diff_at_Reff = StShapes[str(hid)]['diff_at_Reff']
                     except KeyError:
                         print(f'Error loading diff_at_Reff for sim {sim} halo {hid}')
                         diff_at_Reff = np.nan
 
-                    if ba_s_value < 0.25:
-                        if ca_s_value < 0.25:
-                            print(f'stellar b/a and c/a unusually low in sim {sim} halo {hid}')
+                    # if ba_s_value < 0.25:
+                    #     if ca_s_value < 0.25:
+                    #         print(f'stellar b/a and c/a unusually low in sim {sim} halo {hid}')
                     T_s_value = T(ba_s_value, ca_s_value)
                     T_d_value = T(ba_d_value, ca_d_value)
 
@@ -123,6 +199,35 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         mb_reff = (mass_data[sim][str(hid)]['Mb/Mtot_within_reff'])
                         mb_10rvir = (mass_data[sim][str(hid)]['Mb/Mtot_within_tenth_rvir'])
                         rvir_value = mass_data[sim][str(hid)]['Rvir']
+                        #calculate dynamical time at effective raidius, virial radius, and 10th virial radius
+                        t_dyn_vir = calculate_dynamical_time(rvir_value, m_vir_value)
+                        m_vir_eff = mass_data[sim][str(hid)]['Mvir_within_reff']
+                        m_vir_within_10rvir = mass_data[sim][str(hid)]['Mvir_within_tenth_rvir']
+                        t_dyn_eff = calculate_dynamical_time(Reff, m_vir_eff)
+                        t_dyn_10rvir = calculate_dynamical_time(rvir_value*.1, m_vir_within_10rvir)
+                        #create arrays holding rvir, reff, and 10th rvir
+
+
+
+
+                        # Plot for merging galaxies
+
+
+                        # Example data points
+                        r = np.array([rvir_value, Reff, rvir_value * 0.1])
+                        m = np.array([m_vir_value, m_vir_eff, m_vir_within_10rvir])
+                        #sort arrays by r
+                        r,m = zip(*sorted(zip(r,m)))
+                        params, m_vir_at_5Reff = fit_and_plot(r, m,Reff, sim, hid)
+
+
+
+
+                        t_dyn_value = calculate_dynamical_time(5*Reff,m_vir_value)
+
+                    
+
+
                         try:
                             jz_jcirc_avg = mass_data[sim][str(hid)]['jz_jcirc_avg']
                         except:
@@ -150,6 +255,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                         mb_10rvir = np.nan
                         rvir_value = np.nan
                         jz_jcirc_avg = np.nan
+                        t_dyn_value = np.nan
 
                     # Get halo type
                     key = (sim, str(hid))
@@ -182,10 +288,12 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
 
                     # Check condition and assign NaN if needed
                     if (ba_s_value > 1 or ca_s_value > 1 or ba_d_value > 1 or ca_d_value > 1 or
-                            ba_s_value < 0.25 or ca_s_value < 0.25 or ba_d_value < 0.01 or ca_d_value < 0.01):
+                            ba_s_value < 0.25 or ca_s_value < 0.15 or ba_d_value < 0.01 or ca_d_value < 0.01):
                             # ):  # or ( np.log10(10**masses_value/m_vir_value) < -3):
                             #     # print(f"sim: {sim}, hid: {hid}, ba_s: {ba_s_value:.2f}, ca_s: {ca_s_value:.2f}, ba_d: {ba_d_value:.2f}, ca_d: {ca_d_value:.2f}")
-                        ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
+                    
+                        print(f"sim: {sim}, hid: {hid}, ba_s: {ba_s_value:.2f}, ca_s: {ca_s_value:.2f}, ba_d: {ba_d_value:.2f}, ca_d: {ca_d_value:.2f}")
+                        #ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
                     #     T_s_value, T_d_value, masses_value, mb_value, reff_value, m_vir_value = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
                     #     htype_value = np.nan
                     #     # Es_at_Reff,Ed_at_Reff = np.ones((3))*np.nan,np.ones((3))*np.nan
@@ -204,6 +312,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
                     mb_reffs.append(mb_reff)
                     mb_10rvirs.append(mb_10rvir)
                     rvir.append(rvir_value)
+                    t_dyn.append(t_dyn_value)
                     htype.append(htype_value)
                     reff.append(Reff)
                     sims.append(sim)
@@ -261,13 +370,17 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     B_d = np.array(B_d)
     C_d = np.array(C_d)
     T_d = np.array(T_d)
-    diffs_at_Reff = np.array(diffs_at_Reff)
+    try:
+        diffs_at_Reff = np.array(diffs_at_Reff)
+    except:
+        diffs_at_Reff = np.copy(B_s)*np.nan
     masses = np.array(masses)
     mb = np.array(mb)
     mb_reffs = np.array(mb_reffs)
     mb_10rvirs = np.array(mb_10rvirs)
     rvir = np.array(rvir)
     jz_jcirc_avg = np.array(jz_jcirc_avgs)
+    t_dyn = np.array(t_dyn)
 
     htype = np.array(htype)
     reff = np.array(reff)
@@ -307,6 +420,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
     mb_10rvirs = mb_10rvirs[mask]
     rvir = rvir[mask]
     jz_jcirc_avg = jz_jcirc_avg[mask]
+    t_dyn = t_dyn[mask]
 
 
     htype = htype[mask]
@@ -321,7 +435,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False):
 
     if return_sims:
         return B_s, C_s, T_s, B_d, C_d, T_d, \
-            masses, mb,mb_reffs,mb_10rvirs, htype, reff, m_vir, feedback_type, sims, hid, mergers, rvir, diffs_at_Reff, jz_jcirc_avg
+            masses, mb,mb_reffs,mb_10rvirs, htype, reff, m_vir, feedback_type, sims, hid, mergers, rvir, diffs_at_Reff, jz_jcirc_avg, t_dyn
     # if return_sims:
     #     return B_s[mask], C_s[mask], T_s[mask], B_d[mask], C_d[mask], T_d[mask], \
     #         masses, mb, htype[mask], reff[mask], m_vir, feedback_type[mask], sims[mask], hid[mask], mergers

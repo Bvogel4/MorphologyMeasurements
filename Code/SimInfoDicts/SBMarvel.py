@@ -1,9 +1,10 @@
-marvel_path = '/myhome2/users/munshi/dwarf_volumes/'
-dcjl_path = '/myhome2/users/munshi/e12gals/'
+marvel_path = '/home/bk639/data/Marvel/'
+dcjl_path = '/home/bk639/data/DCJL/'
 
 Sims = {
     'storm' : {
-        'path' : marvel_path+'storm.cosmo25cmb.4096g1HsbBH/storm.cosmo25cmb.4096g1HsbBH.004096',
-        'halos' : [1,2,3,4,6,7,8,10,14,15,18,21,23,35,48,49,61,88,125,133,175,235,262,272,300,541]#5,11,12,42]
-    }
+        'path' : marvel_path+'storm.cosmo25cmb.4096g1HsbBH/storm.cosmo25cmb.4096g1HsbBH.004096/storm.cosmo25cmb.4096g1HsbBH.004096',
+        'halos' : [1,2,3,4,5,6,7,8,10,11,12,14,15,22,23,31,37,44,48,55,118],
+        'goodhalos' : [1,2,3,4,5,6,7,8,14]
+    },
 }

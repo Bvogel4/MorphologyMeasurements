@@ -720,3 +720,18 @@ class BaryonicFractionVirial(PynbodyPropertyCalculation):
         return m_vir, m_star, m_gas, mb_mvir
 
 
+
+
+class DMDensityProfile(PynbodyPropertyCalculation):
+    names = ['rho_dm', 'rho_dm_rbins']
+
+    def calculate(self, halo, existing_properties):
+        halo.physical_units()
+        pynbody.analysis.angmom.faceon(halo)
+        prof = pynbody.analysis.profile.Profile(halo.dm, type='log', min=0.1, ndim=3)
+        rbins= prof['rbins']
+        rho_dm = prof['density']
+        return rho_dm, rbins
+
+
+

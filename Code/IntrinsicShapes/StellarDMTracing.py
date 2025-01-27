@@ -114,42 +114,60 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False, fixed_r=False):
 
     for i in range(len(SimFilePath)):
         SimInfo = pickle.load(open(SimFilePath[i], 'rb'))
-        mass_data = pickle.load(open(MassPath[i], 'rb'))
+        try:
+            mass_data = pickle.load(open(MassPath[i], 'rb'))
+        except:
+            print(f'Error loading mass data for {feedbacks[i]}')
         #print(mass_data)
         
 
-        dataframe = pd.read_csv(HaloTypePath[i], sep=r'\s+')
-        try:
-            merger_ratios = pickle.load(open(f'../../Data/BasicData/Mergers.{feedbacks[i]}.pickle','rb'))
-        except:
-            print(f'Error loading merger ratios for {feedbacks[i]}')
-        #for merger_ratios seperator is a comma
 
-        types = {}
-        for _, row in dataframe.iterrows():
-            types[(row['Volume'], str(row['HaloGRP@z0']))] = row['HaloType']
+        # try:
+        #     merger_ratios = pickle.load(open(f'../../Data/BasicData/Mergers.{feedbacks[i]}.pickle','rb'))
+        # except:
+        #     print(f'Error loading merger ratios for {feedbacks[i]}')
+        #for merger_ratios seperator is a comma
+        try:
+            dataframe = pd.read_csv(HaloTypePath[i], sep=r'\s+')
+            types = {}
+            for _, row in dataframe.iterrows():
+                types[(row['Volume'], str(row['HaloGRP@z0']))] = row['HaloType']
+        except:
+            print(f'Error loading halo types for {feedbacks[i]}')
+        #print(SimInfo)
+        
 
         for sim in SimInfo:
             try:
                 StShapes = pickle.load(open(f'../../Data/{sim}.{feedbacks[i]}.3DShapes.pickle', 'rb'))
                 DMShapes = pickle.load(open(f'../../Data/{sim}.{feedbacks[i]}.DMShapes.pickle', 'rb'))
                 Profiles = pickle.load(open(f'../../Data/{sim}.{feedbacks[i]}.Profiles.pickle', 'rb'))
+                # if feedback == 'SBMarvel':
+                #     Profiles = pickle.load(
+                #         open(f'../../Data/{sim}.BWMDC.Profiles.pickle',
+                #              'rb'))
             except:
                 print(traceback.format_exc())
                 print(f'error loading data in in sim {sim}')
                 continue
 
             for hid in SimInfo[sim]['goodhalos']:
-
-                if sim == 'cptmarvel' and hid == 10:
+                if sim == 'cptmarvel' and hid == 7:
                     continue
+                if sim == 'elektra' and hid == 10:
+                    continue
+                #if sim == 'r618' or sim == 'r618.romulus25si2s50v35':
+                    #print(f'ignoring sim {sim}')
+                    #continue
+
+                #print(f'Loading data for sim {sim} halo {hid}')
 
                 try:
 
                     rbins, rd, ba_s_func, ca_s_func, ba_d_func, ca_d_func = [
-                        StShapes[str(hid)]['rbins'], DMShapes[str(hid)]['rbins'],
-                        StShapes[str(hid)]['ba_smooth'], StShapes[str(hid)]['ca_smooth'],
-                        DMShapes[str(hid)]['ba_smooth'], DMShapes[str(hid)]['ca_smooth']
+                        StShapes[(hid)]['rbins'], DMShapes[(hid)]['rbins'],
+                        StShapes[(hid)]['ba_smooth'], StShapes[(hid)]['ca_smooth'],
+                        DMShapes[(hid)]['ba_smooth'], DMShapes[(hid)]['ca_smooth']
                     ]
                     Reff = Profiles[str(hid)]['x000y000']['Reff'] * reff_multi
                     if fixed_r:
@@ -171,12 +189,13 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False, fixed_r=False):
                         print(f'sim {sim} halo {hid} has invalid shape values')
                         print(f'ba_s: {ba_s_value}, ca_s: {ca_s_value}, ba_d: {ba_d_value}, ca_d: {ca_d_value}')
                         ba_s_value, ca_s_value, ba_d_value, ca_d_value = np.nan, np.nan, np.nan, np.nan
+                        
 
                     try:
-                        diff_at_Reff = StShapes[str(hid)]['diff_at_Reff']
+                        diff_at_Reff = StShapes[(hid)]['diffs_at_Reff']
                     except KeyError:
                         print(f'Error loading diff_at_Reff for sim {sim} halo {hid}')
-                        diff_at_Reff = np.nan
+                    #diff_at_Reff = np.nan
 
                     # if ba_s_value < 0.25:
                     #     if ca_s_value < 0.25:
@@ -260,7 +279,8 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False, fixed_r=False):
                     # Get halo type
                     key = (sim, str(hid))
                     if key in types and types[key] in ['Central', 'Backsplash', 'Satellite']:
-                        htype_value = 'o' if types[key] in ['Central', 'Backsplash'] else 'v'
+                        htype_value = 'o' if types[key] in ['Central'] else 'v'
+                        #print(f'htype: {htype_value}')
                     else:
                         htype_value = np.nan
 
@@ -288,7 +308,7 @@ def LoadSimData(feedbacks, reff_multi=1, return_sims=False, fixed_r=False):
 
                     # Check condition and assign NaN if needed
                     if (ba_s_value > 1 or ca_s_value > 1 or ba_d_value > 1 or ca_d_value > 1 or
-                            ba_s_value < 0.25 or ca_s_value < 0.15 or ba_d_value < 0.01 or ca_d_value < 0.01):
+                            ba_s_value < 0.01 or ca_s_value < 0.01 or ba_d_value < 0.01 or ca_d_value < 0.01):
                             # ):  # or ( np.log10(10**masses_value/m_vir_value) < -3):
                             #     # print(f"sim: {sim}, hid: {hid}, ba_s: {ba_s_value:.2f}, ca_s: {ca_s_value:.2f}, ba_d: {ba_d_value:.2f}, ca_d: {ca_d_value:.2f}")
                     

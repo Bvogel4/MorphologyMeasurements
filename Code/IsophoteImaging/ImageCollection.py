@@ -117,7 +117,8 @@ SimInfo = pickle.load(open(Siminfo_dir / f'SimulationInfo.{args.feedback}.pickle
 
 simpath = SimInfo[args.simulation]['path']
 halos = SimInfo[args.simulation]['goodhalos']
-dx,dy = 30,30 #Angular resolution of rotations
+dx,dy = 90,90 #Angular resolution of rotations
+#dx,dy = 30,30 #Angular resolution of rotations
 #Check if all halos in sim have been completed
 image_path = images_dir / f'{args.simulation}.{args.feedback}' / str(halos[-1])
 if f'{halos[-1]}.x{180-dx:03d}.y{360-dy}.png' in os.listdir(image_path) and not args.overwrite:

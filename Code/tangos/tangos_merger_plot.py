@@ -1,9 +1,111 @@
+
 from tangos.relation_finding import MultiHopMostRecentMergerStrategy
 import tangos
 from collections import defaultdict
 import networkx as nx
 import matplotlib.pyplot as plt
 import time
+import mytangosproperty
+
+
+def smooth_shape(rbins, ba, ca):
+    k = 4
+    s_factor = 1
+    """
+    Smooth and filter data, handling a few NaN values gracefully.
+
+    Parameters:
+    rbins, ba, ca: array-like, input data
+    k: int, degree of the smoothing spline (default 3)
+    s_factor: float, smoothing factor as a fraction of len(rbins) (default 0.01)
+    residual_threshold, jump_threshold, jump_percentage: unused in this version
+
+    Returns:
+    rbins, ba, ca: filtered arrays
+    ba_s, ca_s: smoothed spline functions
+    """
+    import numpy as np
+    from scipy.interpolate import UnivariateSpline
+
+    # Remove rows where either ba or ca is NaN
+    mask = ~np.isnan(ba) & ~np.isnan(ca)
+    rbins_filtered = rbins[mask]
+    ba_filtered = ba[mask]
+    ca_filtered = ca[mask]
+
+    # if there are no values, return the original values
+    if len(rbins_filtered) == 0:
+        return rbins, ba, ca, SmoothAxisRatio.nan_func, SmoothAxisRatio.nan_func
+
+    # Calculate smoothing parameter
+    s = s_factor * len(rbins_filtered)
+
+    # Create splines
+    # print(rbins_filtered, ba_filtered)
+    ba_s = UnivariateSpline(rbins_filtered, ba_filtered, k=k, s=s)
+    ca_s = UnivariateSpline(rbins_filtered, ca_filtered, k=k, s=s)
+
+    # Print some diagnostic information
+    # print(f"Total data points: {len(rbins)}")
+    # print(f"Data points after NaN removal: {len(rbins_filtered)}")
+    # print(f"NaN percentage: {(1 - len(rbins_filtered)/len(rbins))*100:.2f}%")
+
+    n = len(rbins_filtered)
+    # calculate residuals and remove outliers
+    ba_residuals = ba_filtered - ba_s(rbins_filtered)
+    ca_residuals = ca_filtered - ca_s(rbins_filtered)
+    # calculate the standard deviation of the residuals
+    ba_std = np.std(ba_residuals)
+    ca_std = np.std(ca_residuals)
+    # remove outliers
+    d = 3
+
+    mask = np.abs(ba_residuals) < d * ba_std
+
+    rbins_filtered = rbins_filtered[mask]
+    ba_filtered = ba_filtered[mask]
+    ca_filtered = ca_filtered[mask]
+    mask = np.abs(ca_residuals[mask]) < d * ca_std
+    rbins_filtered = rbins_filtered[mask]
+    ba_filtered = ba_filtered[mask]
+    ca_filtered = ca_filtered[mask]
+    # Recreate splines
+    ba_s = UnivariateSpline(rbins_filtered, ba_filtered, k=k, s=s)
+    ca_s = UnivariateSpline(rbins_filtered, ca_filtered, k=k, s=s)
+
+    # remove any points that are isolated in space
+    # calculate the difference between each point
+
+    diff = np.diff(rbins_filtered, prepend=0)
+    # print(diff)
+    # mask isolated points
+    mask = diff > 1
+    # print(mask)
+    # print(rbins_filtered[mask])
+    # print(diff[mask])
+    rbins_filtered = rbins_filtered[~mask]
+    ba_filtered = ba_filtered[~mask]
+    ca_filtered = ca_filtered[~mask]
+    # Recreate splines
+    ba_s = UnivariateSpline(rbins_filtered, ba_filtered, k=k, s=s)
+    ca_s = UnivariateSpline(rbins_filtered, ca_filtered, k=k, s=s)
+    # Print some diagnostic information
+    # print(f"Data points after outlier removal: {len(rbins_filtered)}")
+    # print(f"Outlier percentage: {(1 - len(rbins_filtered)/len(rbins))*100:.2f}%")
+
+    # def clip_function(func):
+    #     def clipped(x):
+    #         return np.clip(func(x), 0, 1)
+    #
+    #     return clipped
+    #
+    # # clip the function to 0,1
+    # ba_s_c = clip_function(ba_s)
+    # ca_s_c = clip_function(ca_s)
+
+    return rbins_filtered, ba_filtered, ca_filtered, ba_s, ca_s
+
+
 
 
 class HaloNode:
@@ -14,19 +116,27 @@ class HaloNode:
         self.ndm = halo.NDM
         self.mvir = halo['Mvir']
         self.mstar = halo['Mstar']
+        self.reff = halo['reff'] #change this to change where shapes are measured
+        print(self.reff)
+        if self.reff is not None:
+            self.reff = self.reff*2
         self.merger_time = None
         self.merger_ratio = None
 
         self.is_merger = False
         self.merger_ratio = None
 
-        try:
-            self.ba_s = halo.calculate('ba_s_at_reff()')
-            self.ca_s = halo.calculate('ca_s_at_reff()')
-            self.ba_d = halo.calculate('ba_d_at_reff()')
-            self.ca_d = halo.calculate('ca_d_at_reff()')
-        except:
-            self.ba_s = self.ca_s = self.ba_d = self.ca_d = None
+        #try:
+        rbins_s, ba_s, ca_s = halo['rbins_s'], halo['ba_s'], halo['ca_s']
+        rbins_filtered, ba_filtered, ca_filtered, ba_s, ca_s = smooth_shape(rbins_s, ba_s, ca_s)
+        self.ba_s = ba_s(self.reff)
+        self.ca_s = ca_s(self.reff)
+
+        rbins_d, ba_d, ca_d = halo['rbins_d'], halo['ba_d'], halo['ca_d']
+        rbins_filtered, ba_filtered, ca_filtered, ba_d, ca_d = smooth_shape(rbins_d, ba_d, ca_d)
+        self.ba_d = ba_d(self.reff)
+        self.ca_d = ca_d(self.reff)
+
 
     def calculate_merger_ratio(self):
         if len(self.progenitors) > 1:
@@ -496,28 +606,24 @@ import numpy as np
 def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_timesteps=True):
     width = 8
     height = 8
-    axis_font_size = 30
+    axis_font_size = 33
     legend_font_size = 20
     tick_font_size = 20
 
     fig, ax = plt.subplots(figsize=(width, height))
 
-
     def get_min_merger_ratio(line):
         ratios = [node.merger_ratio for node in line if node.merger_ratio is not None and node.merger_ratio != np.inf]
         return min(ratios) if ratios else np.inf
 
-    def scale_size(input_value, min_input=4, max_input=7, max_size=400, min_size=50):
-        # Ensure the input is within the expected range
+    def scale_size(input_value, min_input=4.2, max_input=6, max_size=800, min_size=50):
         clamped_input = max(min_input, min(input_value, max_input))
-
-        # Calculate the inverse ratio
         inverse_ratio = 1 - (clamped_input - min_input) / (max_input - min_input)
-
-        # Use this inverse ratio to interpolate between min_size and max_size
         scaled_size = min_size + inverse_ratio * (max_size - min_size)
-
         return round(scaled_size)
+
+    # Define colors outside the loop to maintain consistency
+    colors = ["#0072B2", "#E69F00", "#009E73"]
 
     for idx, main_line in enumerate(main_lines):
         merger_idx, merger_node = find_most_recent_merger(main_line)
@@ -530,7 +636,19 @@ def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_t
 
         phase_list = main_line[-3:]  # Get the last three nodes
         labels = [f'z = {abs(node.redshift):.2f}' for node in phase_list]
-        colors = ["#0072B2", "#E69F00", "#009E73"]
+        #print the range of ba_s and ca_s, ba_d and ca_d across the three phases
+        print(f"Simulation {idx}")
+        ba_d_list, ca_d_list, ba_s_list, ca_s_list = [], [], [], []
+        for phase in phase_list:
+            if phase is not None:
+                ba_s_list.append(phase.ba_s)
+                ca_s_list.append(phase.ca_s)
+                ba_d_list.append(phase.ba_d)
+                ca_d_list.append(phase.ca_d)
+        print(f"ba_s: {min(ba_s_list):.2f} - {max(ba_s_list):.2f}")
+        print(f"ca_s: {min(ca_s_list):.2f} - {max(ca_s_list):.2f}")
+        print(f"ba_d: {min(ba_d_list):.2f} - {max(ba_d_list):.2f}")
+        print(f"ca_d: {min(ca_d_list):.2f} - {max(ca_d_list):.2f}")
 
 
 
@@ -539,54 +657,192 @@ def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_t
             ca_s = [phase.ca_s for phase in phase_list if phase is not None]
             ba_d = [phase.ba_d for phase in phase_list if phase is not None]
             ca_d = [phase.ca_d for phase in phase_list if phase is not None]
-            ax.plot(ba_s, ca_s, c='gray', alpha=0.5, linestyle='-',zorder=0)
-            ax.plot(ba_d, ca_d, c='gray', alpha=0.5, linestyle='-',zorder=0)
+            ax.plot(ba_s, ca_s, c='gray', alpha=0.5, linestyle='-', zorder=0)
+            ax.plot(ba_d, ca_d, c='gray', alpha=0.5, linestyle='-', zorder=0)
 
         for phase, color, label in zip(phase_list, colors, labels):
             if phase is not None:
                 ba_s, ca_s = phase.ba_s, phase.ca_s
                 ba_d, ca_d = phase.ba_d, phase.ca_d
-
-
-
-
-
                 if phase.is_merger:
-                    ax.scatter(ba_s, ca_s, edgecolors = 'k', marker='*', s=point_size, c=color,zorder=2, alpha=0.7)
-                    ax.scatter(ba_d, ca_d, edgecolors = 'k', marker='o', s=point_size*.8, c=color,zorder=2, alpha=0.7)
+                    ax.scatter(ba_s, ca_s, edgecolors='k', marker='*', s=point_size, c=color, zorder=2, alpha=0.7, lw=2)
+                    ax.scatter(ba_d, ca_d, edgecolors='k', marker='o', s=point_size * .8, c=color, zorder=2, alpha=0.7,
+                               lw=2)
+
+                    # Add annotations with arrows for merger events
+                    # Stellar component annotation
+                    # ax.annotate(
+                    #     f'{phase.merger_ratio:.1f}',
+                    #     xy=(ba_s, ca_s),  # point to annotate
+                    #     xytext=(ba_s - 0.1, ca_s - 0),  # offset text position
+                    #     fontsize=15,
+                    #     color=color,
+                    #     zorder=3,
+                    #     arrowprops=dict(
+                    #         arrowstyle='->',
+                    #         color=color,
+                    #         alpha=0.7
+                    #     ),
+                    #     bbox=dict(
+                    #         facecolor='white',
+                    #         edgecolor='none',
+                    #         alpha=0.7,
+                    #         pad=0.5
+                    #     )
+                    # )
+                    print(f'{phase.merger_ratio:.1f}',phase.mstar,phase.redshift)
+
+                    # # Dark matter component annotation
+                    # ax.annotate(
+                    #     f'{phase.merger_ratio:.1f}',
+                    #     xy=(ba_d, ca_d),
+                    #     xytext=(ba_d + 0.1, ca_d + 0.1),
+                    #     fontsize=15,
+                    #     color=color,
+                    #     zorder=3,
+                    #     arrowprops=dict(
+                    #         arrowstyle='->',
+                    #         color=color,
+                    #         alpha=0.7
+                    #     ),
+                    #     bbox=dict(
+                    #         facecolor='white',
+                    #         edgecolor='none',
+                    #         alpha=0.7,
+                    #         pad=0.5
+                    #     )
+                    # )
                 else:
-                    ax.scatter(ba_s, ca_s, c=color, marker='*', s=point_size, zorder=1,alpha=0.7)
-                    ax.scatter(ba_d, ca_d, c=color, marker='o', s=point_size * 0.8, zorder=1,alpha=0.7)
-
-
+                    ax.scatter(ba_s, ca_s, c=color, marker='*', s=point_size, zorder=1, alpha=0.7)
+                    ax.scatter(ba_d, ca_d, c=color, marker='o', s=point_size * 0.8, zorder=1, alpha=0.7)
 
                 if link_dm_to_stellar and ba_s is not None and ca_s is not None and ba_d is not None and ca_d is not None:
                     ax.plot([ba_d, ba_s], [ca_d, ca_s], c=color, alpha=0.5, linestyle='--')
 
-
-
     ax.tick_params(axis='both', which='major', labelsize=tick_font_size)
+
     # Add dummy points for legend
     ax.scatter([], [], c='k', marker='*', s=75, label='Stellar')
     ax.scatter([], [], c='k', marker='o', s=60, label='Dark Matter')
-    ax.scatter([], [], marker='o', s=90, facecolors='none',edgecolors = 'k', label='Merger')
+    ax.scatter([], [], marker='o', s=90, facecolors='none', edgecolors='k', label='Merger')
     for color, label in zip(colors, labels):
         ax.scatter([], [], c=color, marker='o', s=75, label=label)
 
     ax.set_aspect('equal')
-    #ax.plot([0, 1], [0, 1], '--', color='gray', alpha=1,lw = 2)
-    ax.set_xlim(0.5, 1)
-    ax.set_ylim(0.3, .8)
-    # ax.set_xlim(0, 1)
-    # ax.set_ylim(0, 1)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.grid(False)
 
-    ax.set_xlabel('S = B/A', fontsize=axis_font_size)
-    ax.set_ylabel('Q = C/A', fontsize=axis_font_size)
+    ax.set_xlabel(r'$S = B/A$', fontsize=axis_font_size)
+    ax.set_ylabel(r'$Q = C/A$', fontsize=axis_font_size)
+    ax.plot([0, 1], [0, 1], c='0.5', linestyle='--')
     ax.legend(loc='upper left', fontsize=legend_font_size)
-
 
     plt.tight_layout()
     plt.savefig(f'{figure_folder}/merger_ba_ca_all_sims.png', bbox_inches='tight', dpi=300)
+
+    
+# def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_timesteps=True):
+#     width = 10
+#     height = 10
+#     axis_font_size = 33
+#     legend_font_size = 20
+#     tick_font_size = 20
+#
+#     fig, ax = plt.subplots(figsize=(width, height))
+#
+#
+#     def get_min_merger_ratio(line):
+#         ratios = [node.merger_ratio for node in line if node.merger_ratio is not None and node.merger_ratio != np.inf]
+#         return min(ratios) if ratios else np.inf
+#
+#     def scale_size(input_value, min_input=4.2, max_input=6, max_size=800, min_size=50):
+#         # Ensure the input is within the expected range
+#         clamped_input = max(min_input, min(input_value, max_input))
+#
+#         # Calculate the inverse ratio
+#         inverse_ratio = 1 - (clamped_input - min_input) / (max_input - min_input)
+#
+#         # Use this inverse ratio to interpolate between min_size and max_size
+#         scaled_size = min_size + inverse_ratio * (max_size - min_size)
+#
+#         return round(scaled_size)
+#
+#     for idx, main_line in enumerate(main_lines):
+#         merger_idx, merger_node = find_most_recent_merger(main_line)
+#         if merger_idx is None:
+#             print(f"No merger found for simulation {idx}")
+#             continue
+#
+#         min_merger_ratio = get_min_merger_ratio(main_line)
+#         point_size = scale_size(min_merger_ratio)
+#
+#         phase_list = main_line[-3:]  # Get the last three nodes
+#         labels = [f'z = {abs(node.redshift):.2f}' for node in phase_list]
+#         colors = ["#0072B2", "#E69F00", "#009E73"]
+#
+#
+#
+#         if link_timesteps:
+#             ba_s = [phase.ba_s for phase in phase_list if phase is not None]
+#             ca_s = [phase.ca_s for phase in phase_list if phase is not None]
+#             ba_d = [phase.ba_d for phase in phase_list if phase is not None]
+#             ca_d = [phase.ca_d for phase in phase_list if phase is not None]
+#             ax.plot(ba_s, ca_s, c='gray', alpha=0.5, linestyle='-',zorder=0)
+#             ax.plot(ba_d, ca_d, c='gray', alpha=0.5, linestyle='-',zorder=0)
+#
+#         for phase, color, label in zip(phase_list, colors, labels):
+#             if phase is not None:
+#                 ba_s, ca_s = phase.ba_s, phase.ca_s
+#                 ba_d, ca_d = phase.ba_d, phase.ca_d
+#                 if phase.is_merger:
+#                     #print reddshfits, halo numbers, merger ratios
+#                     #print(phase.redshift, phase.mstar, phase.merger_ratio)
+#                     ax.scatter(ba_s, ca_s, edgecolors = 'k', marker='*', s=point_size, c=color,zorder=2, alpha=0.7,lw = 2)
+#                     ax.scatter(ba_d, ca_d, edgecolors = 'k', marker='o', s=point_size*.8, c=color,zorder=2, alpha=0.7,lw = 2)
+#                 else:
+#                     ax.scatter(ba_s, ca_s, c=color, marker='*', s=point_size, zorder=1,alpha=0.7)
+#                     ax.scatter(ba_d, ca_d, c=color, marker='o', s=point_size * 0.8, zorder=1,alpha=0.7)
+#
+#
+#
+#                 if link_dm_to_stellar and ba_s is not None and ca_s is not None and ba_d is not None and ca_d is not None:
+#                     ax.plot([ba_d, ba_s], [ca_d, ca_s], c=color, alpha=0.5, linestyle='--')
+#         #for each simulation, add text with the smallest merger ratio, annotating the merger event
+#         #find the largest merger ratio
+#         max_merger_ratio = min([node.merger_ratio for node in main_line if node.merger_ratio is not None and node.merger_ratio != np.inf])
+#         #find the node with the largest merger ratio
+#         max_merger_node = [node for node in main_line if node.merger_ratio == max_merger_ratio]
+#         #annotate the merger event with the largest merger ratio
+#         ax.annotate(f'{max_merger_ratio:.1f}', (max_merger_node[0].ba_s, max_merger_node[0].ca_s), fontsize=15, color='black', zorder=3)
+#         ax.annotate(f'{max_merger_ratio:.1f}', (max_merger_node[0].ba_d, max_merger_node[0].ca_d), fontsize=15, color='black', zorder=3)
+#
+#
+#
+#
+#     ax.tick_params(axis='both', which='major', labelsize=tick_font_size)
+#     # Add dummy points for legend
+#     ax.scatter([], [], c='k', marker='*', s=75, label='Stellar')
+#     ax.scatter([], [], c='k', marker='o', s=60, label='Dark Matter')
+#     ax.scatter([], [], marker='o', s=90, facecolors='none',edgecolors = 'k', label='Merger')
+#     for color, label in zip(colors, labels):
+#         ax.scatter([], [], c=color, marker='o', s=75, label=label)
+#
+#     ax.set_aspect('equal')
+#     #ax.plot([0, 1], [0, 1], '--', color='gray', alpha=1,lw = 2)
+#     ax.set_xlim(0, 1)
+#     ax.set_ylim(0,1)
+#     # ax.set_xlim(0, 1)
+#     # ax.set_ylim(0, 1)
+#     ax.grid(False)
+#
+#     ax.set_xlabel('S = B/A', fontsize=axis_font_size)
+#     ax.set_ylabel('Q = C/A', fontsize=axis_font_size)
+#     ax.legend(loc='upper left', fontsize=legend_font_size)
+#
+#
+#     plt.tight_layout()
+#     plt.savefig(f'{figure_folder}/merger_ba_ca_all_sims.png', bbox_inches='tight', dpi=300)
 
 
 import numpy as np

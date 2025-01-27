@@ -212,7 +212,7 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
             a2 = a.copy()
             a, R, N = shell_shape(r, pos, mass, a, R, bin_edges[[i, i + 1]], ndim)
 
-            convergence_criterion = np.all(np.isclose(np.sort(a), np.sort(a2), rtol=tol if j < 50 else tol * 5))
+            convergence_criterion = np.all(np.isclose(np.sort(a), np.sort(a2), rtol=tol))
             if convergence_criterion:
                 R = realign(R, a, ndim)
                 if np.sign(np.linalg.det(R)) == -1:
@@ -310,7 +310,7 @@ def myprint(string,clear=False):
 
 
 def get_bins(n):
-    n = n*.9
+    #n = n*.9
     if n < 1e4:
         return int(20 * n/1e4 /2 + 10)
     elif n >= 1e4:
@@ -324,59 +324,85 @@ def get_bins(n):
 
 #try and load output file if it already exists
 #ignore if overwrite is set
+        # Function to process shape for given parameters
+def process_shape(particles, rin, rout, bins):
+    shape_data = {}
+    rbins, axis_lengths, num_particles, rotations = shape(particles, nbins=bins, ndim=3, rmin=rin, rmax=rout, max_iterations=125, tol=1e-2, justify=False)
+    ba = axis_lengths[:, 1] / axis_lengths[:, 0]
+    ca = axis_lengths[:, 2] / axis_lengths[:, 0]
+    shape_data['rbins'] = rbins
+    shape_data['ba'] = ba
+    shape_data['ca'] = ca
+    shape_data['rotations'] = rotations
+    shape_data['N'] = num_particles
+    return shape_data
 
+# noinspection PyUnreachableCode
 def process_halo(hid):
     #center halo
     pynbody.analysis.halo.center(hid)
+    #maybe in the future change this to face-on
+    #pynbody.analysis.angmom.faceon(hid)
     print(f'Analyzing halo {hid}')
 
     try:
-        # Find the number of particles in the halo
-        N_star = len(hid.s)
-
-        # Find the number of bins to use
-
-        # get radius that contains 80% of star particles
-        rsort =  hid.s['r'][np.argsort(hid.s['r'])]
-        r_8 = rsort[int(0.8*N_star)]
-        rout = rsort[-1]
-        bins = get_bins(N_star)
-        rin = 0.1
-
-        # Find the stellar shape of the halo
+        # Find the stellar shape of the halo (original run)
         try:
-            starshape = {}
-            rbins, axis_lengths, num_particles, rotations = shape(hid.s, nbins=bins, ndim=3, rmin=rin, rmax=rout, max_iterations=75, tol=1e-3, justify=False)
-            ba = axis_lengths[:, 1] / axis_lengths[:, 0]
-            ca = axis_lengths[:, 2] / axis_lengths[:, 0]
-            starshape['rbins'] = rbins
-            starshape['ba'] = ba
-            starshape['ca'] = ca
-            starshape['rotations'] = rotations
-            starshape['N_s'] = num_particles
-            starshape['r_80'] = r_8
+            # Find the number of particles in the halo
+            N_star = len(hid.s)
+            rin = 0.1
+            if N_star  == 0:
+                print(f'No star particles in halo {hid}.')
+                rout = hid.dm['r'].max() * 0.3
+                starshape = None
+            else:
+
+                # Find the number of bins to use
+
+                # get radius that contains 80% of star particles
+                rsort = hid.s['r'][np.argsort(hid.s['r'])]
+                r_8 = rsort[int(0.8 * N_star)]
+                rout = rsort[-1]
+                print(hid.s['r'].max().in_units('kpc'),hid.s['r'].min().in_units('kpc'))
+                # if rout < rin:
+                #     rout = None
+                #     rin = None #let the function decide
+
+                bins = get_bins(N_star)
+                starshape = process_shape(hid.s, rin, rout, bins)
+                starshape['r_80'] = r_8
+                r_star_max = starshape['rbins'][-3]
+                rout = r_star_max
+
+            N_dark = len(hid.d['r'][hid.d['r'] < rout])
+            bins = get_bins(N_dark)
+            darkshape = process_shape(hid.d, rin, rout, bins)
+
+            # get number of particles within 4th bin
+
+            if False:#bins_2 >= 1: #disable second run
+                rout_2 = darkshape['rbins'][3]
+                N_dark_1kpc = len(hid.d['r'][hid.d['r'] < rout_2])
+
+                # Second run for dark matter shape (0.1 to 1 kpc, 500 particles per bin)
+                bins_2 = N_dark_1kpc / 500
+
+                darkshape_2 = process_shape(hid.d, rin, rout_2, int(bins_2))
+
+                # Combine the results
+                for key in ['rbins', 'ba', 'ca', 'rotations', 'N']:
+                    combined = np.concatenate(
+                        [darkshape_2[key], darkshape[key]])
+                    if key == 'rbins':
+                        # Get sorting indices from rbins
+                        sort_indices = np.argsort(combined)
+                        darkshape[key] = combined[sort_indices]
+                    else:
+                        # Apply same sorting to other arrays to maintain correspondence
+                        darkshape[key] = combined[sort_indices]
+
         except Exception as e:
-            print(f'Error in halo {hid} (stellar): {e}')
-            traceback.print_exc()
-            return None, None
-
-        # get the dark matter shape of the halo
-        N_dark = len(hid.d['r'][hid.d['r'] < rout])
-        bins = get_bins(N_dark)
-
-        try:
-            darkshape = {}
-            rbins, axis_lengths, num_particles, rotations = shape(hid.d, nbins=bins, ndim=3, rmin=rin, rmax=rout, max_iterations=75, tol=1e-3, justify=False)
-            ba = axis_lengths[:, 1] / axis_lengths[:, 0]
-            ca = axis_lengths[:, 2] / axis_lengths[:, 0]
-            darkshape['rbins'] = rbins
-            darkshape['ba'] = ba
-            darkshape['ca'] = ca
-            darkshape['rotations'] = rotations
-            darkshape['N_d'] = num_particles
-
-        except Exception as e:
-            print(f'Error in halo {hid} (dark matter): {e}')
+            print(f'Error in halo {hid}: {e}')
             traceback.print_exc()
             return None, None
 
@@ -386,6 +412,73 @@ def process_halo(hid):
         print(f'Error in halo {hid}: {e}')
         traceback.print_exc()
         return None, None
+
+# def process_halo(hid):
+#     #center halo
+#     pynbody.analysis.halo.center(hid)
+#     print(f'Analyzing halo {hid}')
+#
+#     try:
+#         # Find the number of particles in the halo
+#         N_star = len(hid.s)
+#
+#         # Find the number of bins to use
+#
+#         # get radius that contains 80% of star particles
+#         rsort =  hid.s['r'][np.argsort(hid.s['r'])]
+#         r_8 = rsort[int(0.8*N_star)]
+#         rout = rsort[-1]
+#         bins = get_bins(N_star)
+#         rin = 0.1
+#
+#         # Find the stellar shape of the halo
+#         try:
+#             starshape = {}
+#             rbins, axis_lengths, num_particles, rotations = shape(hid.s, nbins=bins, ndim=3, rmin=rin, rmax=rout, max_iterations=125, tol=1e-2, justify=False)
+#             r_star_max = rbins[-3]
+#             ba = axis_lengths[:, 1] / axis_lengths[:, 0]
+#             ca = axis_lengths[:, 2] / axis_lengths[:, 0]
+#
+#
+#
+#             starshape['rbins'] = rbins
+#             starshape['ba'] = ba
+#             starshape['ca'] = ca
+#             starshape['rotations'] = rotations
+#             starshape['N_s'] = num_particles
+#             starshape['r_80'] = r_8
+#
+#             rout = r_star_max
+#             # get the dark matter shape of the halo
+#             N_dark = len(hid.d['r'][hid.d['r'] < rout])
+#             bins = get_bins(N_dark)
+#
+#
+#             darkshape = {}
+#
+#             rbins, axis_lengths, num_particles, rotations = shape(hid.d, nbins=bins, ndim=3, rmin=rin, rmax=rout, max_iterations=50, tol=1e-2, justify=False)
+#             ba = axis_lengths[:, 1] / axis_lengths[:, 0]
+#             ca = axis_lengths[:, 2] / axis_lengths[:, 0]
+#
+#
+#
+#             darkshape['rbins'] = rbins
+#             darkshape['ba'] = ba
+#             darkshape['ca'] = ca
+#             darkshape['rotations'] = rotations
+#             darkshape['N_d'] = num_particles
+#
+#         except Exception as e:
+#             print(f'Error in halo {hid}: {e}')
+#             traceback.print_exc()
+#             return None, None
+#
+#         return starshape, darkshape
+#
+#     except Exception as e:
+#         print(f'Error in halo {hid}: {e}')
+#         traceback.print_exc()
+#         return None, None
 
 num_threads = 1
 def main():
@@ -439,30 +532,11 @@ def main():
         if starshape is not None:
             StarShapeData[hid] = starshape
         else:
-            print(f'Error in halo {hid} (stellar).')
+            print(f'Error in halo {hid} (stellar) or no star particles.')
         if darkshape is not None:
             DarkShapeData[hid] = darkshape
         else:
             print(f'Error in halo {hid} (dark matter).')
-
-
-    # Combine results
-    StarShapeData = {}
-    DarkShapeData = {}
-    for hid in halos:
-        # try:
-            if results[hid][0] is not None:
-                StarShapeData[hid] = results[hid][0]
-            else:
-                print(f'Error in halo {hid} (stellar).')
-            if results[hid][1] is not None:
-                DarkShapeData[hid] = results[hid][1]
-            else:
-                print(f'Error in halo {hid} (dark matter).')
-        # except:
-        #     print(f'Error in halo {hid}, likely not processed.')
-
-
 
     #Save results
     file_path = data_dir / f'{args.simulation}.{args.feedback}.3DShapes.pickle'

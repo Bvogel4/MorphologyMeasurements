@@ -17,6 +17,7 @@ from scipy.interpolate import interp1d
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
+import copy
 
 
 def gaussian_smooth(x, y, distance=0.2, sigma=6):
@@ -59,57 +60,98 @@ def nanfunction(x):
     return x*0 +10
 
 from scipy.interpolate import UnivariateSpline
-def smooth_and_filter_data(rbins, ba, ca, k=5, s_factor=0.01, residual_threshold=0.3, jump_threshold=0.3, jump_percentage=0.2):
+
+
+def smooth_and_filter_data(rbins, ba, ca,k = 4):
+    s_factor = 1
     """
-    Smooth and filter data, removing outliers and checking for large jumps.
+    Smooth and filter data, handling a few NaN values gracefully.
 
     Parameters:
-    rbins: array-like, x coordinates
-    ba, ca: array-like, y coordinates for two datasets
-    k: int, degree of the smoothing spline (default 5)
+    rbins, ba, ca: array-like, input data
+    k: int, degree of the smoothing spline (default 3)
     s_factor: float, smoothing factor as a fraction of len(rbins) (default 0.01)
-    residual_threshold: float, threshold for removing points based on residuals (default 0.3)
-    jump_threshold: float, threshold for detecting large jumps (default 0.3)
-    jump_percentage: float, percentage of data allowed to have large jumps (default 0.1)
+    residual_threshold, jump_threshold, jump_percentage: unused in this version
 
     Returns:
     rbins, ba, ca: filtered arrays
     ba_s, ca_s: smoothed spline functions
     """
+    import numpy as np
+    from scipy.interpolate import UnivariateSpline
 
+    # Remove rows where either ba or ca is NaN
+    mask = ~np.isnan(ba) & ~np.isnan(ca)
+    rbins_filtered = rbins[mask]
+    ba_filtered = ba[mask]
+    ca_filtered = ca[mask]
 
-    # Check for large jumps
-    ba_diff = np.abs(np.diff(ba))
-    ca_diff = np.abs(np.diff(ca))
-    large_jumps = (ba_diff > jump_threshold) | (ca_diff > jump_threshold)
+    # Calculate smoothing parameter
+    s = s_factor * len(rbins_filtered)
 
-    if np.sum(large_jumps) > (len(rbins) - 1) * jump_percentage:
-        print(f"Warning: More than {jump_percentage*100}% of the data has successive jumps greater than {jump_threshold}")
+    # Create splines
+    ba_s = UnivariateSpline(rbins_filtered, ba_filtered, k=k, s=s)
+    ca_s = UnivariateSpline(rbins_filtered, ca_filtered, k=k, s=s)
 
-        return rbins, ba, ca, nanfunction, nanfunction
+    # Print some diagnostic information
+    # print(f"Total data points: {len(rbins)}")
+    # print(f"Data points after NaN removal: {len(rbins_filtered)}")
+    # print(f"NaN percentage: {(1 - len(rbins_filtered)/len(rbins))*100:.2f}%")
 
-    
-    def Smooth(x, y, k, s):
-        return UnivariateSpline(x, y, k=k, s=s)
+    n = len(rbins_filtered)
+    # calculate residuals and remove outliers
+    ba_residuals = ba_filtered - ba_s(rbins_filtered)
+    ca_residuals = ca_filtered - ca_s(rbins_filtered)
+    # calculate the standard deviation of the residuals
+    ba_std = np.std(ba_residuals)
+    ca_std = np.std(ca_residuals)
+    # remove outliers
+    d = 3
 
-    # Initial smoothing
-    s = len(rbins) * s_factor
-    ba_s, ca_s = Smooth(rbins, ba, k=k, s=s), Smooth(rbins, ca, k=k, s=s)
+    mask = np.abs(ba_residuals) < d * ba_std
 
-    # Calculate residuals and create mask
-    res_ba = np.abs(ba_s(rbins) - ba)
-    res_ca = np.abs(ca_s(rbins) - ca)
-    mask = (res_ba < residual_threshold) & (res_ca < residual_threshold)
+    rbins_filtered = rbins_filtered[mask]
+    ba_filtered = ba_filtered[mask]
+    ca_filtered = ca_filtered[mask]
+    mask = np.abs(ca_residuals[mask]) < d * ca_std
+    rbins_filtered = rbins_filtered[mask]
+    ba_filtered = ba_filtered[mask]
+    ca_filtered = ca_filtered[mask]
+    # Recreate splines
+    ba_s = UnivariateSpline(rbins_filtered, ba_filtered, k=k, s=s)
+    ca_s = UnivariateSpline(rbins_filtered, ca_filtered, k=k, s=s)
 
-    # Apply mask
-    rbins, ba, ca = rbins[mask], ba[mask], ca[mask]
+    # remove any points that are isolated in space
+    # calculate the difference between each point
 
+    diff = np.diff(rbins_filtered, prepend=0)
+    # print(diff)
+    # mask isolated points
+    mask = diff > 1
+    # print(mask)
+    # print(rbins_filtered[mask])
+    # print(diff[mask])
+    rbins_filtered = rbins_filtered[~mask]
+    ba_filtered = ba_filtered[~mask]
+    ca_filtered = ca_filtered[~mask]
+    # Recreate splines
+    ba_s = UnivariateSpline(rbins_filtered, ba_filtered, k=k, s=s)
+    ca_s = UnivariateSpline(rbins_filtered, ca_filtered, k=k, s=s)
+    # Print some diagnostic information
+    # print(f"Data points after outlier removal: {len(rbins_filtered)}")
+    # print(f"Outlier percentage: {(1 - len(rbins_filtered)/len(rbins))*100:.2f}%")
 
+    # def clip_function(func):
+    #     def clipped(x):
+    #         return np.clip(func(x), 0, 1)
+    #
+    #     return clipped
+    #
+    # # clip the function to 0,1
+    # ba_s_c = clip_function(ba_s)
+    # ca_s_c = clip_function(ca_s)
 
-    # Recalculate the smoothed line
-    ba_s, ca_s = Smooth(rbins, ba, k=k, s=s), Smooth(rbins, ca, k=k, s=s)
-
-    return rbins, ba, ca, ba_s, ca_s
+    return rbins_filtered, ba_filtered, ca_filtered, ba_s, ca_s
 
 # loop,remake=True,False
 # while loop:
@@ -143,6 +185,7 @@ from SimInfoDicts.sim_type_name import sim_type_name
 for t in ['DMShapes','3DShapes']:
     print(f'Smoothing {t}')
     for feedback, use_sim in sim_type_name.items():
+
         if use_sim:
             print(f'Calculating masses for {feedback} feedback type.')
             pickle_path = f'../PickleFiles/SimulationInfo.{feedback}.pickle'
@@ -152,6 +195,7 @@ for t in ['DMShapes','3DShapes']:
                 for sim in SimInfo:
                     try:
                         Shapes = pickle.load(open(f'../../Data/{sim}.{feedback}.{t}.pickle','rb'))
+                        Shape_backup = copy.deepcopy(Shapes)
                     except FileNotFoundError:
                         print(f'Error loading {sim}.{feedback}.{t}.pickle')
                     try:
@@ -160,7 +204,7 @@ for t in ['DMShapes','3DShapes']:
                         print(f'Error loading {sim}.{feedback}.Profiles.pickle')
                     for hid in SimInfo[sim]['goodhalos']:
                         try:
-                            rbins,ba,ca=Shapes[str(hid)]['rbins'],Shapes[str(hid)]['ba'], Shapes[str(hid)]['ca']
+                            rbins,ba,ca=Shapes[(hid)]['rbins'],Shapes[(hid)]['ba'], Shapes[(hid)]['ca']
                             reffs = []
                             if len(rbins)>0:
                                 #print('halo',hid)
@@ -171,15 +215,18 @@ for t in ['DMShapes','3DShapes']:
                                     except IndexError:
                                         if verbose:
                                             print(f'IndexError angle {angle} for halo {hid} in {sim}.{feedback}.Profiles.pickle')
-                                
+
                                 f,ax=plt.subplots(1,1,figsize=(6,2))
                                 ax.set_xlim([0,max(rbins)])
                                 ax.set_ylim([0,1])
                                 ax.set_xlabel('R [kpc]',fontsize=15)
                                 ax.set_ylabel('Axis Ratio',fontsize=15)
                                 ax.tick_params(which='both',labelsize=10)
+                                k = 4
+                                if sim == 'r634':
+                                    k = 5
                                 rbins, ba, ca, ba_s, ca_s = smooth_and_filter_data(
-                                    rbins, ba, ca)
+                                    rbins, ba, ca,k = k)
                                 ax.plot(rbins,ba,c='k',label='B/A')
                                 ax.plot(rbins,ca,c='k',linestyle='--',label='C/A')
                                 # if f'{sim}-{hid}' in windows[t]:
@@ -188,23 +235,23 @@ for t in ['DMShapes','3DShapes']:
                                 #     ca = ca[(rbins<w[0])|(rbins>w[1])]
                                 #     rbins = rbins[(rbins<w[0])|(rbins>w[1])]
                                     # Assuming you have a rough idea of how much you want to smooth the data
-            
+
                                 #ba_s,ca_s = Smooth(rbins,ba,k=3),Smooth(rbins,ca,k=3)
                                 #ba_s,ca_s = gaussian_smooth(rbins,ba,distance=0.2,sigma=6),gaussian_smooth(rbins,ca,distance=0.2,sigma=6)
                                 #if sim == 'r468':
                                 # Assuming you have a rough idea of how much you want to smooth the data
                                     #smoothing_factor = 1/50  # some value representing the trade-off between smoothness and fitting
                                     #ba_s, ca_s = Smooth(rbins, ba, k=3, s=smoothing_factor), Smooth(rbins, ca, k=3, s=smoothing_factor)
-            
+
                                     #print('knots',ba_s.get_knots())
-            
+
                                 ax.plot(rbins,ba_s(rbins),c='r')
                                 ax.plot(rbins,ca_s(rbins),c='r',linestyle='--')
                                 #ax.axvspan(min(reffs),max(reffs),color='k',alpha=0.3,label=r'R$_{eff}$')
                                 for reff in reffs:
                                     ax.axvline(reff,c='k',alpha=.05)
                                 ax.axvline(reffs[0],c='k',alpha=.05,label=r'R$_{eff}$')
-                
+
                                 ax.legend(loc='lower right',prop={'size':12})
                                 fname='Stars' if t=='3DShapes' else 'Dark'
                                 #create folder if it doesn't exist
@@ -214,11 +261,19 @@ for t in ['DMShapes','3DShapes']:
                                 print(f'Saving {filename}')
                                 f.savefig(filename,bbox_inches='tight',pad_inches=.1)
                                 plt.close()
-                
-                                Shapes[str(hid)]['ba_smooth'] = ba_s
-                                Shapes[str(hid)]['ca_smooth'] = ca_s
+                                Shapes[(hid)]['ba_smooth'] = ba_s
+                                Shapes[(hid)]['ca_smooth'] = ca_s
                         except Exception as e:
-                            print(traceback.format_exc())                
-                            print(f"An error occurred during smoothing halo {hid}: {e}")
-                        pickle.dump(Shapes,open(f'../../Data/{sim}.{feedback}.{t}.pickle','wb'))
+                            print(traceback.format_exc())
+                            print(f"An error occurred during smoothing {t} halo {hid}: {e}")
+
+                        try:
+                            pickle.dump(Shapes,open(f'../../Data/{sim}.{feedback}.{t}.pickle','wb'))
+                            print(f'Saved {sim}.{feedback}.{t}.pickle')
+                        except Exception as e:
+                            print(f"An error occurred during saving {sim}.{feedback}.{t}.pickle: {e}")
+                            print(traceback.format_exc())
+                            #ensure that the backup is saved
+                            pickle.dump(Shape_backup,open(f'../../Data/{sim}.{feedback}.{t}.pickle','wb'))
+
 print('Smoothing Done')

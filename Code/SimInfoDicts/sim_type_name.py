@@ -1,12 +1,11 @@
 sim_type_name = {
-    'BWMDC': True,
-    'MerianCDM': True,
-    'MerianSIDM': True,
-
-    'DOstormCDM': False,
-    'DOstormSIDM': False,
-    'SBMarvel': False,
-    'Storm': False,
+    "DOstormCDM": False,
+    "DOstormSIDM": False,
+    "MerianCDM": True,
+    "SBMarvel": False,
+    "MerianSIDM": True,
+    "MerianSIDMad": True,
+    "MerianCDMad": True,
+    "BWMDC": False,
+    "Storm": False,
 }
-
-

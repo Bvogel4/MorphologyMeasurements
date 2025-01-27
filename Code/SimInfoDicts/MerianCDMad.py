@@ -1,0 +1,18 @@
+Sims = {
+    "r431": {'path': '/data/REPOSITORY/romulus_zooms/r431.romulus25.3072g1HsbBH/adiabatic/r431.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r468": {'path': '/data/REPOSITORY/romulus_zooms/r468.romulus25.3072g1HsbBH/adiabatic/r468.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r492": {'path': '/data/REPOSITORY/romulus_zooms/r492.romulus25.3072g1HsbBH/adiabatic/r492.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r502": {'path': '/data/REPOSITORY/romulus_zooms/r502.romulus25.3072g1HsbBH/adiabatic/r502.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r515": {'path': '/data/REPOSITORY/romulus_zooms/r515.romulus25.3072g1HsbBH/adiabatic/r515.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r523": {'path': '/data/REPOSITORY/romulus_zooms/r523.romulus25.3072g1HsbBH/adiabatic/r523.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r544": {'path': '/data/REPOSITORY/romulus_zooms/r544.romulus25.3072g1HsbBH/adiabatic/r544.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r556": {'path': '/data/REPOSITORY/romulus_zooms/r556.romulus25.3072g1HsbBH/adiabatic/r556.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r568": {'path': '/data/REPOSITORY/romulus_zooms/r568.romulus25.3072g1HsbBH/adiabatic/r568.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r569": {'path': '/data/REPOSITORY/romulus_zooms/r569.romulus25.3072g1HsbBH/adiabatic/r569.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r571": {'path': '/data/REPOSITORY/romulus_zooms/r571.romulus25.3072g1HsbBH/adiabatic/r571.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r613": {'path': '/data/REPOSITORY/romulus_zooms/r613.romulus25.3072g1HsbBH/adiabatic/r613.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r614": {'path': '/data/REPOSITORY/romulus_zooms/r614.romulus25.3072g1HsbBH/adiabatic/r614.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r615": {'path': '/data/REPOSITORY/romulus_zooms/r615.romulus25.3072g1HsbBH/adiabatic/r615.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r618": {'path': '/data/REPOSITORY/romulus_zooms/r618.romulus25.3072g1HsbBH/adiabatic/r618.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+    "r634": {'path': '/data/REPOSITORY/romulus_zooms/r634.romulus25.3072g1HsbBH/adiabatic/r634.romulus25.3072g1HsbBH.004096', 'halos': [1], 'goodhalos': [1]},
+}

@@ -353,15 +353,19 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
 
 
     print(f"Processing mass properties for halo {hid}")
-    rvir = halo['Rhalo']
-    mvir = halo['Mhalo']
+    try:
+        rvir = halo.properties['Rhalo']
+        mvir = halo.properties['Mhalo']
+    except:
+        try:
+            rvir = halo['Rvir']
+            mvir = halo['Mvir']
+        except:
+            print(f"Failed to find rvir and mvir for halo {hid} from catalog")
+            print(halo.properties)
+            rvir = max(halo['r'])
+            mvir = halo['mass'].sum()
 
-    rvir = halo['Rvir']
-    mvir = halo['Mvir']
-
-
-    rvir = max(halo['r'])
-    mvir = halo['mass'].sum()
     mstar = halo.star['mass'].sum()
     mgas = halo.gas['mass'].sum()
     mb_mvir = (mstar + mgas) / mvir
@@ -424,59 +428,59 @@ def process_halo(halo, hid, Profiles, timeout=600):  # 5 minutes timeout by defa
             't_dyn_rstar': t_dyn_rstar
         })
 
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(timeout)
-    print(f"Starting decomposition analysis for halo {hid}")
-
-    try:
-        start_time = time.time()
-
-        #pynbody.analysis.angmom.faceon(halo)
-        results['faceon_time'] = time.time() - start_time
-
-        angmom_size = str(Reff * 3) + ' kpc'
-        pro_d, jcrit = decomp(halo, aligned=True, j_disk_min=.7, j_disk_max=1.2, angmom_size=angmom_size)
-        results['decomp_time'] = time.time() - start_time
-
-        mdisk = sum(halo.s['mass'][halo.s['decomp'] == 1])
-        mthick = sum(halo.s['mass'][halo.s['decomp'] == 4])
-        dt_decomp = (mdisk + mthick) / Mstar
-
-        mdisk_star = (halo.s['mass'][halo.s['jz_by_jzcirc'] > jcrit]).sum()
-        mdisk_gas = (halo.g['mass'][halo.g['jz_by_jzcirc'] > jcrit]).sum()
-
-        mdisk_star_counter = (halo.s['mass'][halo.s['jz_by_jzcirc'] < -jcrit]).sum()
-        mdisk_gas_counter = (halo.g['mass'][halo.g['jz_by_jzcirc'] < -jcrit]).sum()
-        mdisk_star = mdisk_star - mdisk_star_counter
-        mdisk_gas = mdisk_gas - mdisk_gas_counter
-
-        dt_star = (mdisk) / mstar
-        dt_gas = (mdisk_gas) / mgas
-
-        dt_total = (mdisk_star + mdisk_gas) / (mstar + mgas)
-
-
-
-        jz_jcirc = halo.s['jz_by_jzcirc']
-        jz_jcirc = jz_jcirc[np.isfinite(jz_jcirc)]
-        jz_jcirc_avg = np.mean(jz_jcirc)
-
-        results.update({
-            'dt_decomp': dt_decomp,
-            'dt_star': dt_star,
-            'dt_gas': dt_gas,
-            'dt_total': dt_total,
-            'jz_jcirc_avg': jz_jcirc_avg,
-            'j_crit': jcrit
-        })
-
-
-    except TimeoutError as e:
-        print(f"Timeout occurred for halo {hid}: {e}")
-        print(f"Last completed step: {max(results.keys(), key=lambda k: results[k] if isinstance(results[k], (int, float)) else 0)}")
-        results.update({k: np.nan for k in ['dt_decomp', 'dt_star', 'dt_gas', 'dt_total', 'jz_jcirc_avg', 'j_crit']})
-    finally:
-        signal.alarm(0)  # Disable the alarm
+    # signal.signal(signal.SIGALRM, timeout_handler)
+    # signal.alarm(timeout)
+    # print(f"Starting decomposition analysis for halo {hid}")
+    #
+    # try:
+    #     start_time = time.time()
+    #
+    #     #pynbody.analysis.angmom.faceon(halo)
+    #     results['faceon_time'] = time.time() - start_time
+    #
+    #     angmom_size = str(Reff * 3) + ' kpc'
+    #     pro_d, jcrit = decomp(halo, aligned=True, j_disk_min=.7, j_disk_max=1.2, angmom_size=angmom_size)
+    #     results['decomp_time'] = time.time() - start_time
+    #
+    #     mdisk = sum(halo.s['mass'][halo.s['decomp'] == 1])
+    #     mthick = sum(halo.s['mass'][halo.s['decomp'] == 4])
+    #     dt_decomp = (mdisk + mthick) / Mstar
+    #
+    #     mdisk_star = (halo.s['mass'][halo.s['jz_by_jzcirc'] > jcrit]).sum()
+    #     mdisk_gas = (halo.g['mass'][halo.g['jz_by_jzcirc'] > jcrit]).sum()
+    #
+    #     mdisk_star_counter = (halo.s['mass'][halo.s['jz_by_jzcirc'] < -jcrit]).sum()
+    #     mdisk_gas_counter = (halo.g['mass'][halo.g['jz_by_jzcirc'] < -jcrit]).sum()
+    #     mdisk_star = mdisk_star - mdisk_star_counter
+    #     mdisk_gas = mdisk_gas - mdisk_gas_counter
+    #
+    #     dt_star = (mdisk) / mstar
+    #     dt_gas = (mdisk_gas) / mgas
+    #
+    #     dt_total = (mdisk_star + mdisk_gas) / (mstar + mgas)
+    #
+    #
+    #
+    #     jz_jcirc = halo.s['jz_by_jzcirc']
+    #     jz_jcirc = jz_jcirc[np.isfinite(jz_jcirc)]
+    #     jz_jcirc_avg = np.mean(jz_jcirc)
+    #
+    #     results.update({
+    #         'dt_decomp': dt_decomp,
+    #         'dt_star': dt_star,
+    #         'dt_gas': dt_gas,
+    #         'dt_total': dt_total,
+    #         'jz_jcirc_avg': jz_jcirc_avg,
+    #         'j_crit': jcrit
+    #     })
+    #
+    #
+    # except TimeoutError as e:
+    #     print(f"Timeout occurred for halo {hid}: {e}")
+    #     print(f"Last completed step: {max(results.keys(), key=lambda k: results[k] if isinstance(results[k], (int, float)) else 0)}")
+    #     results.update({k: np.nan for k in ['dt_decomp', 'dt_star', 'dt_gas', 'dt_total', 'jz_jcirc_avg', 'j_crit']})
+    # finally:
+    #     signal.alarm(0)  # Disable the alarm
 
     return results
 
@@ -536,7 +540,7 @@ def process_simulation(simulation, SimInfo, Profiles, feedback):
     print(f"Processing simulation {simulation}")
     with load_simulation(simpath) as sim:
         h = sim.halos()
-        with pymp.Parallel(10) as p:
+        with pymp.Parallel(1) as p:
             #for hid in range(len(halos)):
                 #print(f"Processing halo {halos[hid]} in simulation {simulation}")
             for hid in p.range(len(halos)):

@@ -1,0 +1,9 @@
+Volume	HaloGRP@z0	HaloType
+r468	1	Central
+r488	1	Central
+r492	1	Central
+r523	1	Central
+r544	1	Central
+r597	1	Central
+r618	1	Central
+r634	1	Central

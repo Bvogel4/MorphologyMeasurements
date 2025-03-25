@@ -1,83 +1,96 @@
-import os,pickle
+import os
+import pickle
 
-marvel_path = '/myhome2/users/munshi/dwarf_volumes/'
-dcjl_path = '/myhome2/users/munshi/e12gals/'
+#import dictonaries from folder SimInfoDicts, and place them into a list to be iterated over in the main function
+#this is done to avoid having to manually add each dictionary to the main function
+#they are stored as .py files
+#from each file import the dictionary named Sims
 
-#Add BW-CDM sim info
-Sims = {
-    #Sim name for image/file naming purposes
-    'cptmarvel' : {
-        #Path to sim data
-        'path' : marvel_path+'cptmarvel.cosmo25cmb.4096g5HbwK1BH/cptmarvel.cosmo25cmb.4096g5HbwK1BH.004096/cptmarvel.cosmo25cmb.4096g5HbwK1BH.004096',
-        #IDs of resolved halos in sim
-        'halos' : [1,2,3,5,6,7,10,11,13,14,24],
-        #IDs of halos that are valid for all morphology methods
-        #These are the halos that will have saved data/images and contribute to figures
-        'goodhalos' : [1,2,3,5,6,7,10]
-    },
-    'elektra' : {
-        'path' : marvel_path+'elektra.cosmo25cmb.4096g5HbwK1BH/elektra.cosmo25cmb.4096g5HbwK1BH.004096/elektra.cosmo25cmb.4096g5HbwK1BH.004096',
-        'halos' : [1,2,3,4,5,8,9,10,11,12,17,36,64],
-        'goodhalos' : [1,2,3,4,5,9,10]
-    },
-    'storm' : {
-        'path' : marvel_path+'storm.cosmo25cmb.4096g5HbwK1BH/storm.cosmo25cmb.4096g5HbwK1BH.004096/storm.cosmo25cmb.4096g5HbwK1BH.004096',
-        'halos' : [1,2,3,4,5,6,7,8,10,11,12,14,15,22,23,31,37,44,48,55,118],
-        'goodhalos' : [1,2,3,4,5,6,7,8,14,31]
-    },
-    'rogue' : {
-        'path' : marvel_path+'rogue.cosmo25cmb.4096g5HbwK1BH/rogue.cosmo25cmb.4096g5HbwK1BH.004096/rogue.cosmo25cmb.4096g5HbwK1BH.004096',
-        'halos' : [1,3,7,8,10,11,12,15,16,17,28,31,37,58,116],
-        'goodhalos' : [1,3,7,8,10,11,12,15,28]
-    },
-    'h148' : {
-        'path' : dcjl_path+'h148.cosmo50PLK.3072g3HbwK1BH/h148.cosmo50PLK.3072g3HbwK1BH.004096/h148.cosmo50PLK.3072g3HbwK1BH.004096',
-        'halos' : [2,3,4,6,7,11,12,13,15,20,23,27,28,29,33,34,37,38,41,43,51,59,65,75,86,94,109,114,122],
-        'goodhalos' : [2,3,4,6,7,11,12,23,27,38,65]
-    },
-    'h229' : {
-        'path' : dcjl_path+'h229.cosmo50PLK.3072gst5HbwK1BH/h229.cosmo50PLK.3072gst5HbwK1BH.004096/h229.cosmo50PLK.3072gst5HbwK1BH.004096',
-        'halos' : [2,3,6,14,15,18,20,22,25,33,47,48,49,52,57,62,89,92,127],
-        'goodhalos' : [2,3,6,18]
-    },
-    'h242' : {
-        'path' : dcjl_path+'h242.cosmo50PLK.3072gst5HbwK1BH/h242.cosmo50PLK.3072gst5HbwK1BH.004096/h242.cosmo50PLK.3072gst5HbwK1BH.004096',
-        'halos' : [8,10,21,26,30,34,38,42,44,45,63,70,81,138],
-        'goodhalos' : [8,10]
-    },
-    'h329' : {
-        'path' : dcjl_path+'h329.cosmo50PLK.3072gst5HbwK1BH/h329.cosmo50PLK.3072gst5HbwK1BH.004096/h329.cosmo50PLK.3072gst5HbwK1BH.004096',
-        'halos' : [7,9,29,30,37,53,115,117,127],
-        'goodhalos' : [7]
-    }
-}
-
-pickle.dump(Sims,open('SimulationInfo.BW.pickle','wb') )
-
-#Query to initialize Image directory
-init = input('Initialize Image Directory? (y,n): ')
-if init=='y':
-    print('Initializing Image Directory...')
-    os.system('mkdir ../Figures/Images')
-    for sim in Sims:
-        os.system(f'mkdir ../Figures/Images/{sim}.BW')
-        for hid in Sims[sim]['goodhalos']:
-            os.system(f'mkdir ../Figures/Images/{sim}.BW/{hid}')
+#run this to initialize the directories and save the pickle files, as well as image directories
 
 
-#Repeat for SB-CDM sims
-Sims = {
-    'storm' : {
-        'path' : marvel_path+'storm.cosmo25cmb.4096g1HsbBH/storm.cosmo25cmb.4096g1HsbBH.004096',
-        'halos' : [1,2,3,4,6,7,8,10,14,15,18,21,23,35,48,49,61,88,125,133,175,235,262,272,300,541]#5,11,12,42]
-    }
-}
+sim_dicts = {}
+for file in os.listdir('SimInfoDicts'):
+    if file.endswith('.py'):
+        # ignore file called sim_type_name.py
+        if file == 'sim_type_name.py':
+            continue
+        # make name of dictionary entry the name of the file without the .py extension
+        sim_name = file[:-3]
+        # import the dictionary from the file
+        exec(f'from SimInfoDicts.{sim_name} import Sims')
+        # add the dictionary to the sim_dicts dictionary
+        #print(sim_name)
+        sim_dicts[sim_name] = Sims
 
-pickle.dump(Sims,open('SimulationInfo.SB.pickle','wb'))
+import traceback
+# Function to initialize directories
+def init_directories(sim_dict, sim_type):
+    for sim in sim_dict:
+        try:
+            #create folders for figures, if they exist, ignore
+            os.makedirs(f'../Figures/Images/{sim}.{sim_type}', exist_ok=True)
+            for hid in sim_dict[sim]['goodhalos']:
+                os.makedirs(f'../Figures/Images/{sim}.{sim_type}/{hid}',exist_ok=True)
+        except:
+            print(f'Error creating directories for {sim}.{sim_type}')
+            print(traceback.format_exc())
 
-#Create Image Directory
-if init=='y':
-    for sim in Sims:
-        os.system(f'mkdir ../Figures/Images/{sim}.SB')
-        for hid in Sims[sim]['goodhalos']:
-            os.system(f'mkdir ../Figures/Images/{sim}.SB/{hid}')
+
+#write function to save pickle files
+def save_pickle(sim_dict, sim_type_name, init=False):
+
+    for name,use_sim in sim_type_name.items():
+        if use_sim:
+            if init:
+                init_directories(sim_dict[name], name)
+            with open(f'PickleFiles/SimulationInfo.{name}.pickle', 'wb') as f:
+                pickle.dump(sim_dict[name], f)
+            print(f'File saved: SimulationInfo.{name}.pickle')
+
+def main():
+
+    # create a dictionary that holds the names of the simulation types and whether they are to be used
+    # from sim_dicts, get the names of the simulation types
+    sim_type_name = {}
+    #check if sim_type_name.py exists
+    #if not create it, if it does, read it
+    if 'sim_type_name.py' in os.listdir('SimInfoDicts'):
+        #import the dictionary from the file path
+        from SimInfoDicts.sim_type_name import sim_type_name
+        print(f'Config file found at /SimInfoDicts/sim_type_name.py')
+        print(sim_type_name)
+    else:
+        for sim in sim_dicts:
+            sim_type_name[sim] = False
+            print('Config file not found, creating new one, please edit \n /SimInfoDicts/sim_type_name.py')
+        #save to file
+        #add line breaks after each entry
+
+        with open('SimInfoDicts/sim_type_name.py', 'w') as f:
+            f.write('sim_type_name = {\n')
+            for key in sim_type_name:
+                f.write(f'    "{key}": False,\n')
+            f.write('}')
+
+
+
+
+    # Initialize image directory
+    while True:
+        init = input('Initialize Image Directory? (y,n): ')
+        if init == 'y' or init == 'n':
+            break
+        else:
+            print('Invalid input')
+
+    if init == 'y':
+        init = True
+    else:
+        init = False
+    save_pickle(sim_dicts, sim_type_name, init=init)
+
+
+
+if __name__ == '__main__':
+    main()

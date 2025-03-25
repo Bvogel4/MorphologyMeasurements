@@ -2,7 +2,7 @@
 from tangos.relation_finding import MultiHopMostRecentMergerStrategy
 import tangos
 from collections import defaultdict
-import networkx as nx
+#import networkx as nx
 import matplotlib.pyplot as plt
 import time
 import mytangosproperty

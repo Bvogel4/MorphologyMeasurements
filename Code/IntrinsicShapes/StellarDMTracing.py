@@ -74,9 +74,16 @@ def fit_and_plot(r, m, Reff, sim, hid):
 
 
 def calculate_dynamical_time(r_vir, M_halo):
-    r_vir = r_vir * u.kpc
-    M_halo = M_halo * u.solMass
-    t_dyn = np.sqrt(r_vir ** 3 / (const.G * M_halo))
+    try:
+        r_vir = float(r_vir) * u.kpc
+        M_halo = float(M_halo) * u.solMass
+        t_dyn = np.sqrt(r_vir ** 3 / (const.G * M_halo))
+    except:
+        print(f'Error calculating dynamical time for r_vir={r_vir}, M_halo={M_halo}')
+        #print(traceback.format_exc())
+        #print type of r_vir and M_halo
+        print(type(r_vir),type(M_halo))
+        return np.nan
     return t_dyn.to(u.Gyr).value
 
 

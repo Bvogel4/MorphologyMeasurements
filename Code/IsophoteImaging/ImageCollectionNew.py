@@ -15,7 +15,7 @@ import traceback
 import gc
 
 # Global variables and constants
-dx, dy = 30, 30  # Angular resolution of rotations
+dx, dy = 90, 90  # Angular resolution of rotations
 
 
 def setup_directories():

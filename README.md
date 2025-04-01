@@ -95,5 +95,28 @@ Helper functions for loading and plotting data in StellarDMTracing.ipynb
 Code in the tangos directory is used to extract merger information and generate merger plots
 
 
+# Data License
 
+[![CC BY 4.0][cc-by-shield]][cc-by]
+
+The data in this repository is licensed under a
+[Creative Commons Attribution 4.0 International License][cc-by].
+
+[![CC BY 4.0][cc-by-image]][cc-by]
+
+This license covers all datasets, figure data, and processed results included in this repository. Core simulations and intermediate data remain proprietary and are not included in this license.
+
+## Attribution Requirements
+
+If you use this data in your research, please cite:
+
+[10.48550/arXiv.2501.16317]: 10.48550/arXiv.2501.16317
+
+And reference this data repository:
+
+[Repository citation with DOI once deposited in Zenodo]
+
+[cc-by]: http://creativecommons.org/licenses/by/4.0/
+[cc-by-image]: https://i.creativecommons.org/l/by/4.0/88x31.png
+[cc-by-shield]: https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg
 

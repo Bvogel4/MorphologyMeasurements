@@ -1,22 +1,19 @@
-# Title: Galaxy Merger Simulation Data
-# Authors: Your Name, Collaborator Name
-# Table: Merger Properties and Axis Ratios
-# ================================================================================
-# Byte-by-byte Description of file: 
-# --------------------------------------------------------------------------------
-# Bytes Format Units   Label     Explanations
-# --------------------------------------------------------------------------------
-# 1-3   I3     ---     SimID     [1/2] Simulation identifier
-# 5-11  F7.3   ---     Redshift  Redshift (z)
-# 13-18 F6.3   ---     ba_s      Stellar component b/a axis ratio
-# 20-25 F6.3   ---     ca_s      Stellar component c/a axis ratio
-# 27-32 F6.3   ---     ba_d      Dark matter component b/a axis ratio
-# 34-39 F6.3   ---     ca_d      Dark matter component c/a axis ratio
-# 41-47 F7.3   ---     MergeRat  Largest merger ratio
-# --------------------------------------------------------------------------------
-  0  -0.000  0.576  0.340  0.720  0.460   5.615
-  0   0.016  0.590  0.368  0.720  0.479   5.615
-  0   0.041  0.621  0.376  0.733  0.486   5.615
-  1  -0.000  0.869  0.329  0.938  0.526   4.418
-  1   0.016  0.871  0.336  0.921  0.531   4.418
-  1   0.041  0.895  0.339  0.950  0.539   4.418
+# Title: Merger Shape Parameters
+# Authors: Blake Keith
+# Table: Merger ratios and shape Parameters
+# Description: .
+#
+# Column information:
+# 1. SimID (char): Simulation Name
+# 2. HaloID (int): Halo identification number
+# 3. z (float): Redshift
+# 4. B_s (float): Axis ratio B/A for stellar matter [unitless]
+# 5. C_s (float): Axis ratio C/A for stellar matter [unitless]
+# 6. B_d (float): Axis ratio B/A for dark matter [unitless]
+# 7. C_d (float): Axis ratio C/A for dark matter [unitless]
+# 8. Merger_ratio (float): Largest merger during the last 3 timesteps [unitless]elektra 3  -0.000  0.576  0.340  0.720  0.460   5.615
+elektra 3   0.016  0.590  0.368  0.720  0.479   5.615
+elektra 3   0.041  0.621  0.376  0.733  0.486   5.615
+storm 4  -0.000  0.869  0.329  0.938  0.526   4.418
+storm 4   0.016  0.871  0.336  0.921  0.531   4.418
+storm 4   0.041  0.895  0.339  0.950  0.539   4.418

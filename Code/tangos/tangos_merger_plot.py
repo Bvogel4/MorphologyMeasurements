@@ -5,6 +5,8 @@ from collections import defaultdict
 #import networkx as nx
 import matplotlib.pyplot as plt
 import time
+import matplotlib.pyplot as plt
+import numpy as np
 #import mytangosproperty
 
 
@@ -282,8 +284,7 @@ def visualize_tree(tree):
     plt.show()
 
 
-import matplotlib.pyplot as plt
-import numpy as np
+
 
 
 def T(ba, ca):
@@ -480,9 +481,6 @@ def find_most_recent_merger(main_line):
     return None, None
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 
 # def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_timesteps=True):
 #     width = 8
@@ -541,8 +539,6 @@ import numpy as np
 #     plt.savefig(f'{figure_folder}/merger_ba_ca_all_sims.png', bbox_inches='tight', dpi=300)
 
 
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 def plot_Mstar_vs_T(main_lines, figure_folder, link_timesteps=True):
@@ -598,41 +594,36 @@ def plot_Mstar_vs_T(main_lines, figure_folder, link_timesteps=True):
     plt.savefig(f'{figure_folder}/Mstar_vs_T_all_sims.png', bbox_inches='tight', dpi=300)
 
 
-def save_as_aas_mrt(data_dict, output_file, title="Galaxy Merger Simulation Data", authors=None):
+def save_as_aas_mrt(data_dict, output_file):
     """
     Save merger information as an AAS Machine Readable Table (MRT) format .txt file.
 
-    Parameters:
-    data_dict (dict): Dictionary containing merger data for each simulation
-    output_file (str): Path to the output .txt file
-    title (str): Title of the table
-    authors (str): Author names, comma separated
     """
-    if authors is None:
-        authors = "[Author Names]"
+
+    header = [
+        "# Title: Merger Shape Parameters",
+        "# Authors: Blake Keith",
+        "# Table: Merger ratios and shape Parameters",
+        "#",
+        "# Column information:",
+        "# 1. SimName (char): Simulation Name",
+        "# 2. HaloID (int): Halo identification number",
+        '# 3. z (float): Redshift',
+        "# 4. B_s (float): Axis ratio B/A for stellar matter [unitless]",
+        "# 5. C_s (float): Axis ratio C/A for stellar matter [unitless]",
+        "# 6. B_d (float): Axis ratio B/A for dark matter [unitless]",
+        "# 7. C_d (float): Axis ratio C/A for dark matter [unitless]",
+        '# 8. Merger_ratio (float): Largest merger during the last 3 timesteps [unitless]',
+    ]
 
     with open(output_file, 'w') as f:
         # Write the metadata header
-        f.write(f"# Title: {title}\n")
-        f.write(f"# Authors: {authors}\n")
-        f.write("# Table: Merger Properties and Axis Ratios\n")
-        f.write("# ================================================================================\n")
-        f.write("# Byte-by-byte Description of file: \n")
-        f.write("# --------------------------------------------------------------------------------\n")
-        f.write("# Bytes Format Units   Label     Explanations\n")
-        f.write("# --------------------------------------------------------------------------------\n")
-        f.write("# 1-3   I3     ---     SimID     [1/{}] Simulation identifier\n".format(len(data_dict)))
-        f.write("# 5-11  F7.3   ---     Redshift  Redshift (z)\n")
-        f.write("# 13-18 F6.3   ---     ba_s      Stellar component b/a axis ratio\n")
-        f.write("# 20-25 F6.3   ---     ca_s      Stellar component c/a axis ratio\n")
-        f.write("# 27-32 F6.3   ---     ba_d      Dark matter component b/a axis ratio\n")
-        f.write("# 34-39 F6.3   ---     ca_d      Dark matter component c/a axis ratio\n")
-        f.write("# 41-47 F7.3   ---     MergeRat  Largest merger ratio\n")
-        f.write("# --------------------------------------------------------------------------------\n")
+        f.write('\n'.join(header))
+        f.write('\n')
+
 
         # Write the data
-        for sim_id, sim_data in data_dict.items():
-            sim_num = int(sim_id.split()[-1])  # Extract the simulation number
+        for sim_id, sim_data in data_dict.items():  # Extract the simulation number
 
             # Get the data arrays
             ba_s_list = sim_data["ba_s"]
@@ -640,11 +631,11 @@ def save_as_aas_mrt(data_dict, output_file, title="Galaxy Merger Simulation Data
             ba_d_list = sim_data["ba_d"]
             ca_d_list = sim_data["ca_d"]
             merger_ratio = sim_data["largest_merger_ratio"]
-            times = sim_data["times"]
+            times = sim_data["z"]
 
             # Write each timestep as a row
             for i in range(len(times)):
-                line = f"{sim_num:3d} {times[i]:7.3f} {ba_s_list[i]:6.3f} {ca_s_list[i]:6.3f} "
+                line = f"{sim_id} {times[i]:7.3f} {ba_s_list[i]:6.3f} {ca_s_list[i]:6.3f} "
                 line += f"{ba_d_list[i]:6.3f} {ca_d_list[i]:6.3f} {merger_ratio:7.3f}"
                 f.write(line + "\n")
     print('Saved merger output file')
@@ -686,7 +677,7 @@ def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_t
         phase_list = main_line[-3:]  # Get the last three nodes
         labels = [f'z = {abs(node.redshift):.2f}' for node in phase_list]
         #print the range of ba_s and ca_s, ba_d and ca_d across the three phases
-        print(f"Simulation {idx}")
+        #print(f"Simulation {idx}")
         ba_d_list, ca_d_list, ba_s_list, ca_s_list = [], [], [], []
         for phase in phase_list:
             if phase is not None:
@@ -699,16 +690,22 @@ def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_t
         print(f"ba_d: {min(ba_d_list):.2f} - {max(ba_d_list):.2f}")
         print(f"ca_d: {min(ca_d_list):.2f} - {max(ca_d_list):.2f}")
 
-        data_dict[f"Simulation {idx}"] = {"ba_s": ba_s_list, "ca_s": ca_s_list, "ba_d": ba_d_list, "ca_d": ca_d_list}
-
-        #add min merger ratios to data_dict
-        data_dict[f"Simulation {idx}"]["largest_merger_ratio"] = min_merger_ratio
-        #add times to data_dict
+        #attributes like 'halo_number': 4, 'timestep_number': 'storm.cosmo25cmb.4096g5HbwK1BH.004096/storm.cosmo25cmb.4096g5HbwK1BH.004096', 'mvir': 15717275158.426634, 'mstar': 59862551.5106293, 'ndm': 2453011, 'ba_s': array(0.86931509), 'ca_s': array(0.32906719), 'ba_d': array(0.93816736), 'ca_d': array(0.52558006), 'is_merger': True, 'merger_ratio': 4.418190574232229, 'merger_time': 13.731118532488576, 'redshift': -4.2942094324871505e-11, 'time_gyr': 13.731118532488576}
+        # get sim name from 'timestep_number
+        simname = phase_list[0].timestep_number.split(".")[0]
+        halo = phase_list[0].halo_number
+        print(simname,halo)
+        #add times to data_dict 
         z = [node.redshift for node in phase_list]
         #round to 3 decimal places
         z = [round(z_val, 3) for z_val in z]
-        data_dict[f"Simulation {idx}"]["times"] = z
+        #print(data_dict)
+
+        data_dict[f'{simname} {halo}'] = {"ba_s": ba_s_list, "ca_s": ca_s_list, "ba_d": ba_d_list, "ca_d": ca_d_list, "largest_merger_ratio": min_merger_ratio, 'z':z}
         print(data_dict)
+
+
+
 
 
 
@@ -805,8 +802,6 @@ def plot_merger_ba_ca(main_lines, figure_folder, link_dm_to_stellar=True, link_t
     save_as_aas_mrt(
         data_dict,
         "../../Data/MergerShapes.txt",
-        title="Galaxy Merger Simulation Data",
-        authors="Your Name, Collaborator Name"
     )
 
 

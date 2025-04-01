@@ -1,2 +1,0 @@
-Files with all of the image arrays (needed for isophote fitting) are too large to upload to github. They can be copied from glaurung via the following path:
-/myhome2/users/vannest/ObservedShapes/Data/*.Images.pickle

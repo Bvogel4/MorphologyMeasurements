@@ -20,7 +20,7 @@ data_dir = root_dir / 'Data'
 
 # Convert the path to a string and append it to sys.path
 sys.path.append(str(shape_functions_dir))
-from Functions import halo_shape_stellar
+
 
 import argparse, os, pickle, pymp, pynbody, sys, time, warnings, traceback
 import numpy as np
@@ -310,7 +310,7 @@ def myprint(string,clear=False):
 
 
 def get_bins(n):
-    #n = n*.9
+    n = n*.9
     if n < 1e4:
         return int(20 * n/1e4 /2 + 10)
     elif n >= 1e4:
@@ -328,6 +328,7 @@ def get_bins(n):
 def process_shape(particles, rin, rout, bins):
     shape_data = {}
     rbins, axis_lengths, num_particles, rotations = shape(particles, nbins=bins, ndim=3, rmin=rin, rmax=rout, max_iterations=125, tol=1e-2, justify=False)
+    #for testing 1e-2, as it's faster
     ba = axis_lengths[:, 1] / axis_lengths[:, 0]
     ca = axis_lengths[:, 2] / axis_lengths[:, 0]
     shape_data['rbins'] = rbins
@@ -337,12 +338,12 @@ def process_shape(particles, rin, rout, bins):
     shape_data['N'] = num_particles
     return shape_data
 
-# noinspection PyUnreachableCode
+#noinspection PyUnreachableCode
 def process_halo(hid):
     #center halo
-    pynbody.analysis.halo.center(hid)
+    #pynbody.analysis.halo.center(hid)
     #maybe in the future change this to face-on
-    #pynbody.analysis.angmom.faceon(hid)
+    pynbody.analysis.angmom.faceon(hid)
     print(f'Analyzing halo {hid}')
 
     try:
@@ -363,7 +364,8 @@ def process_halo(hid):
                 rsort = hid.s['r'][np.argsort(hid.s['r'])]
                 r_8 = rsort[int(0.8 * N_star)]
                 rout = rsort[-1]
-                print(hid.s['r'].max().in_units('kpc'),hid.s['r'].min().in_units('kpc'))
+                #rout = r_8*2 # this one is pretty close with 5e-3 tol
+                #print(hid.s['r'].max().in_units('kpc'),hid.s['r'].min().in_units('kpc'))
                 # if rout < rin:
                 #     rout = None
                 #     rin = None #let the function decide
@@ -371,35 +373,13 @@ def process_halo(hid):
                 bins = get_bins(N_star)
                 starshape = process_shape(hid.s, rin, rout, bins)
                 starshape['r_80'] = r_8
-                r_star_max = starshape['rbins'][-3]
+                r_star_max = starshape['rbins'][-1]
                 rout = r_star_max
 
             N_dark = len(hid.d['r'][hid.d['r'] < rout])
             bins = get_bins(N_dark)
             darkshape = process_shape(hid.d, rin, rout, bins)
 
-            # get number of particles within 4th bin
-
-            if False:#bins_2 >= 1: #disable second run
-                rout_2 = darkshape['rbins'][3]
-                N_dark_1kpc = len(hid.d['r'][hid.d['r'] < rout_2])
-
-                # Second run for dark matter shape (0.1 to 1 kpc, 500 particles per bin)
-                bins_2 = N_dark_1kpc / 500
-
-                darkshape_2 = process_shape(hid.d, rin, rout_2, int(bins_2))
-
-                # Combine the results
-                for key in ['rbins', 'ba', 'ca', 'rotations', 'N']:
-                    combined = np.concatenate(
-                        [darkshape_2[key], darkshape[key]])
-                    if key == 'rbins':
-                        # Get sorting indices from rbins
-                        sort_indices = np.argsort(combined)
-                        darkshape[key] = combined[sort_indices]
-                    else:
-                        # Apply same sorting to other arrays to maintain correspondence
-                        darkshape[key] = combined[sort_indices]
 
         except Exception as e:
             print(f'Error in halo {hid}: {e}')

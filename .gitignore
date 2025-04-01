@@ -1,7 +1,12 @@
 !Code/*.pickle
 *.sh
-*.ipynb_checkpoints
+__pycache__/
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
 *.exp
 *.png
 *pickle
+Data-*
 !Code/*.pickle
+!Figures/Images/Classified/*.png
+

@@ -1,3 +1,13 @@
+## Licensing
+
+This repository contains two different licenses:
+
+- **Code**: The analysis code is licensed under the [MIT License](LICENSE.md)
+- **Data**: The figure data is licensed under the [Creative Commons Attribution 4.0 International License](DATA_LICENSE.md)
+
+Note that the full simulation data and intermediate processing steps are proprietary and not included in this repository.
+
+
 MIT License
 
 Copyright (c) 2025 Blake Keith

@@ -1,17 +1,17 @@
 # Title: Merger Shape Parameters
 # Authors: Blake Keith
 # Table: Merger ratios and shape Parameters
-# Description: .
 #
 # Column information:
-# 1. SimID (char): Simulation Name
+# 1. SimName (char): Simulation Name
 # 2. HaloID (int): Halo identification number
 # 3. z (float): Redshift
 # 4. B_s (float): Axis ratio B/A for stellar matter [unitless]
 # 5. C_s (float): Axis ratio C/A for stellar matter [unitless]
 # 6. B_d (float): Axis ratio B/A for dark matter [unitless]
 # 7. C_d (float): Axis ratio C/A for dark matter [unitless]
-# 8. Merger_ratio (float): Largest merger during the last 3 timesteps [unitless]elektra 3  -0.000  0.576  0.340  0.720  0.460   5.615
+# 8. Merger_ratio (float): Largest merger during the last 3 timesteps [unitless]
+elektra 3  -0.000  0.576  0.340  0.720  0.460   5.615
 elektra 3   0.016  0.590  0.368  0.720  0.479   5.615
 elektra 3   0.041  0.621  0.376  0.733  0.486   5.615
 storm 4  -0.000  0.869  0.329  0.938  0.526   4.418

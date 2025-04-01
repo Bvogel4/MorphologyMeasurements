@@ -1,7 +1,6 @@
 # Title: Galaxy Shape Parameters and Properties
-# Authors: [Your Name]
+# Authors: Blake Keith
 # Table: Galaxy Simulation Data
-# Description: This table contains shape parameters and properties of galaxies from cosmological simulations.
 #
 # Column information:
 # 1. SimName (char): Simulation name
